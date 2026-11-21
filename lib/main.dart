@@ -5,6 +5,22 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'firebase_options.dart';
 
+class AppColors {
+  static const Color navy = Color(0xFF0A1330);
+  static const Color navySoft = Color(0xFF14224A);
+  static const Color mint = Color(0xFF59F0B5);
+  static const Color mintSoft = Color(0xFFDDFBF0);
+  static const Color lavender = Color(0xFFE7DBFF);
+  static const Color lavenderDark = Color(0xFF8F73FF);
+  static const Color pageBg = Color(0xFFF7F8FC);
+  static const Color card = Colors.white;
+  static const Color textDark = Color(0xFF101828);
+  static const Color textSoft = Color(0xFF667085);
+  static const Color success = Color(0xFF22C55E);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color danger = Color(0xFFEF4444);
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -28,47 +44,70 @@ class TrustPayApp extends StatelessWidget {
 
       theme: ThemeData(
         useMaterial3: true,
-
+        scaffoldBackgroundColor: AppColors.pageBg,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF10264D),
-          primary: const Color(0xFF10264D),
-          secondary: const Color(0xFF00B8A9),
+          seedColor: AppColors.navy,
+          primary: AppColors.navy,
+          secondary: AppColors.mint,
           surface: Colors.white,
         ),
-
-        scaffoldBackgroundColor: const Color(0xFFF5F8FC),
-
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF10264D),
-          foregroundColor: Colors.white,
-          centerTitle: false,
+          backgroundColor: AppColors.pageBg,
+          foregroundColor: AppColors.textDark,
           elevation: 0,
+          centerTitle: false,
         ),
-
         cardTheme: CardThemeData(
-          color: Colors.white,
-          elevation: 2,
-          margin: const EdgeInsets.symmetric(vertical: 8),
+          color: AppColors.card,
+          elevation: 0,
+          margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(24),
           ),
         ),
-
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF10264D),
+            backgroundColor: AppColors.navy,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(18),
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           ),
         ),
-
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 16,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: AppColors.mint, width: 1.5),
+          ),
+        ),
+        textTheme: const TextTheme(
+          headlineMedium: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textDark,
+          ),
+          titleLarge: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textDark,
+          ),
+          bodyLarge: TextStyle(fontSize: 16, color: AppColors.textDark),
+          bodyMedium: TextStyle(fontSize: 14, color: AppColors.textSoft),
         ),
       ),
 
@@ -452,149 +491,540 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     );
   }
 
-  Widget homePage() {
-    return section(t('Welcome to TrustPay 360', 'TrustPay 360 ಗೆ ಸ್ವಾಗತ'), [
-      Card(
-        color: const Color(0xFF10264D),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+  Widget pageShell(String title, List<Widget> children) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        useKannada = !useKannada;
+                      });
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.language,
+                          size: 18,
+                          color: AppColors.navy,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          useKannada ? 'English' : 'ಕನ್ನಡ',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.navy,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget softCard({
+    required Widget child,
+    EdgeInsets padding = const EdgeInsets.all(18),
+  }) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget sectionTitle(String title, [String? subtitle]) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textDark,
+          ),
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 14, color: AppColors.textSoft),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget quickActionTile({
+    required IconData icon,
+    required String title,
+    required Color bgColor,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(22),
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.shield_outlined,
-                color: Color(0xFF00B8A9),
-                size: 48,
-              ),
-              const SizedBox(height: 16),
+              Icon(icon, color: AppColors.navy, size: 24),
+              const SizedBox(height: 10),
               Text(
-                'TrustPay 360',
+                title,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.navy,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                t(
-                  'One Payment. Two-Sided Protection.',
-                  'ಒಂದು ಪಾವತಿ. ಎರಡೂ ಬದಿಗೂ ರಕ್ಷಣೆ.',
-                ),
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                t(
-                  'Fraud awareness, demo payment verification and dispute tracking.',
-                  'ವಂಚನೆ ಜಾಗೃತಿ, ಡೆಮೊ ಪಾವತಿ ಪರಿಶೀಲನೆ ಮತ್ತು ವಿವಾದ ಟ್ರ್ಯಾಕಿಂಗ್.',
-                ),
-                style: const TextStyle(color: Color(0xFFDDE8F3)),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
 
-      const SizedBox(height: 24),
-
-      Text(
-        t('Quick Actions', 'ತ್ವರಿತ ಆಯ್ಕೆಗಳು'),
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF10264D),
+  Widget metricChip({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color bg,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppColors.navy),
+            const SizedBox(height: 10),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: AppColors.textSoft),
+            ),
+          ],
         ),
       ),
+    );
+  }
 
-      const SizedBox(height: 14),
-
-      Wrap(
-        spacing: 12,
-        runSpacing: 12,
+  Widget activityRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String amount,
+    required Color amountColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
         children: [
-          FilledButton.icon(
-            onPressed: () {
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.lavender,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: AppColors.navy),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSoft,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            amount,
+            style: TextStyle(fontWeight: FontWeight.w800, color: amountColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget homePage() {
+    final score = riskScore;
+
+    return pageShell('TrustPay 360', [
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          gradient: const LinearGradient(
+            colors: [AppColors.navy, AppColors.navySoft],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x220A1330),
+              blurRadius: 24,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t(
+                'Payments, with peace of mind.',
+                'ನಿಮ್ಮ ಪಾವತಿ, ಸಂಪೂರ್ಣ ಭರವಸೆಯೊಂದಿಗೆ.',
+              ),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 30,
+                fontWeight: FontWeight.w800,
+                height: 1.15,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              t(
+                'A safer digital payment experience for both senders and merchants.',
+                'ಕಳುಹಿಸುವವರು ಮತ್ತು ವ್ಯಾಪಾರಿಗಳಿಬ್ಬರಿಗೂ ಸುರಕ್ಷಿತ ಡಿಜಿಟಲ್ ಪಾವತಿ ಅನುಭವ.',
+              ),
+              style: const TextStyle(
+                color: Color(0xFFD7DEEE),
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: Container(
+                width: 210,
+                height: 210,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0x3343F5B2), width: 14),
+                ),
+                child: Center(
+                  child: Container(
+                    width: 150,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF0E1839),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x44000000),
+                          blurRadius: 20,
+                          offset: Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            t('Demo Risk Score', 'ಡೆಮೊ ಅಪಾಯದ ಅಂಕ'),
+                            style: const TextStyle(
+                              color: Color(0xFFD7DEEE),
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '$score/100',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 34,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: riskColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(40),
+                            ),
+                            child: Text(
+                              riskLevel,
+                              style: TextStyle(
+                                color: riskColor,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.mint,
+                foregroundColor: AppColors.navy,
+                minimumSize: const Size(double.infinity, 56),
+              ),
+              onPressed: () {
+                setState(() {
+                  currentPage = 1;
+                });
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    t('Send safely', 'ಸುರಕ್ಷಿತವಾಗಿ ಕಳುಹಿಸಿ'),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const Icon(Icons.arrow_forward),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.lavender,
+                foregroundColor: AppColors.navy,
+                minimumSize: const Size(double.infinity, 56),
+              ),
+              onPressed: () {
+                setState(() {
+                  currentPage = 2;
+                });
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    t('Receive payment', 'ಪಾವತಿ ಸ್ವೀಕರಿಸಿ'),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const Icon(Icons.arrow_forward),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 22),
+      sectionTitle(
+        t('Quick Actions', 'ತ್ವರಿತ ಆಯ್ಕೆಗಳು'),
+        t(
+          'Keep the same flow, now with a premium UI.',
+          'ಅದೇ ಕಾರ್ಯವಿಧಾನ, ಈಗ ಉತ್ತಮ UI ಜೊತೆ.',
+        ),
+      ),
+      const SizedBox(height: 14),
+      Row(
+        children: [
+          quickActionTile(
+            icon: Icons.send_rounded,
+            title: t('Send', 'ಕಳುಹಿಸಿ'),
+            bgColor: AppColors.mintSoft,
+            onTap: () {
               setState(() {
                 currentPage = 1;
               });
             },
-            icon: const Icon(Icons.send),
-            label: Text(t('Send Money', 'ಹಣ ಕಳುಹಿಸಿ')),
           ),
-
-          FilledButton.icon(
-            onPressed: () {
+          const SizedBox(width: 12),
+          quickActionTile(
+            icon: Icons.qr_code_2_rounded,
+            title: t('Receive', 'ಸ್ವೀಕರಿಸಿ'),
+            bgColor: AppColors.lavender,
+            onTap: () {
               setState(() {
                 currentPage = 2;
               });
             },
-            icon: const Icon(Icons.store),
-            label: Text(t('Receive Money', 'ಹಣ ಸ್ವೀಕರಿಸಿ')),
           ),
-
-          FilledButton.icon(
-            onPressed: () {
+          const SizedBox(width: 12),
+          quickActionTile(
+            icon: Icons.verified_user_outlined,
+            title: t('Verify', 'ಪರಿಶೀಲಿಸಿ'),
+            bgColor: const Color(0xFFE9F2FF),
+            onTap: () {
               setState(() {
                 currentPage = 3;
               });
             },
-            icon: const Icon(Icons.history),
-            label: Text(t('Disputes', 'ವಿವಾದಗಳು')),
-          ),
-
-          FilledButton.icon(
-            onPressed: () {
-              setState(() {
-                currentPage = 4;
-              });
-            },
-            icon: const Icon(Icons.bar_chart),
-            label: Text(t('Insights', 'ವಿಶ್ಲೇಷಣೆ')),
           ),
         ],
       ),
+      const SizedBox(height: 22),
+      Row(
+        children: [
+          metricChip(
+            icon: Icons.check_circle_outline,
+            value: collectionRecords.length.toString(),
+            label: t('Matched payments', 'ಹೊಂದಿದ ಪಾವತಿಗಳು'),
+            bg: AppColors.mintSoft,
+          ),
+          const SizedBox(width: 12),
+          metricChip(
+            icon: Icons.warning_amber_rounded,
+            value: paymentStatus == 'Mismatch - Needs review' ? '1' : '0',
+            label: t('Needs review', 'ಪರಿಶೀಲನೆ ಬೇಕು'),
+            bg: const Color(0xFFFFE9E5),
+          ),
+        ],
+      ),
+      const SizedBox(height: 22),
 
-      const SizedBox(height: 24),
+      sectionTitle(
+        t('Recent Activity', 'ಇತ್ತೀಚಿನ ಚಟುವಟಿಕೆ'),
+        t('Current demo payment session', 'ಪ್ರಸ್ತುತ ಡೆಮೊ ಪಾವತಿ ಸೆಷನ್'),
+      ),
+
+      const SizedBox(height: 12),
+
+      softCard(
+        child: Column(
+          children: [
+            if (timeline.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.history_rounded,
+                      color: AppColors.lavenderDark,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      t(
+                        'No demo activity yet',
+                        'ಇನ್ನೂ ಯಾವುದೇ ಡೆಮೊ ಚಟುವಟಿಕೆ ಇಲ್ಲ',
+                      ),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.navy,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      t(
+                        'Your payment activity will appear here.',
+                        'ನಿಮ್ಮ ಪಾವತಿ ಚಟುವಟಿಕೆ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ.',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.textSoft),
+                    ),
+                  ],
+                ),
+              ),
+
+            for (final event in timeline.reversed.take(5))
+              activityRow(
+                icon: Icons.history_rounded,
+                title: event,
+                subtitle: sessionId,
+                amount: '',
+                amountColor: AppColors.navy,
+              ),
+          ],
+        ),
+      ),
+
+      const SizedBox(height: 16),
 
       Text(
         t(
-          'One Payment. Two-Sided Protection.',
-          'ಒಂದು ಪಾವತಿ. ಎರಡೂ ಬದಿಗೂ ರಕ್ಷಣೆ.',
+          'Rule-based safety assessment. Simulated payments only.',
+          'ನಿಯಮಾಧಾರಿತ ಸುರಕ್ಷತಾ ಪರಿಶೀಲನೆ. ಡೆಮೊ ಪಾವತಿಗಳು ಮಾತ್ರ.',
         ),
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 16),
-      Text(
-        t(
-          'TrustPay 360 helps customers and merchants '
-              'check payment risks, verify demo transaction '
-              'records, and manage payment disputes.',
-          'TrustPay 360 ಗ್ರಾಹಕರು ಮತ್ತು ವ್ಯಾಪಾರಿಗಳಿಗೆ '
-              'ಪಾವತಿಯ ಅಪಾಯ ಪರಿಶೀಲನೆ, ಡೆಮೊ ವಹಿವಾಟು '
-              'ಪರಿಶೀಲನೆ ಮತ್ತು ವಿವಾದ ನಿರ್ವಹಣೆಗೆ ಸಹಾಯ ಮಾಡುತ್ತದೆ.',
-        ),
-      ),
-      const SizedBox(height: 20),
-      FilledButton.icon(
-        onPressed: () {
-          setState(() {
-            currentPage = 2;
-          });
-        },
-        icon: const Icon(Icons.add_circle),
-        label: Text(t('Create Payment Request', 'ಪಾವತಿ ವಿನಂತಿ ರಚಿಸಿ')),
-      ),
-      const SizedBox(height: 16),
-      Text(t('Current Session: $sessionId', 'ಪ್ರಸ್ತುತ ಸೆಷನ್: $sessionId')),
-      Text(t('Status: $translatedStatus', 'ಸ್ಥಿತಿ: $translatedStatus')),
-      const SizedBox(height: 14),
-      Text(
-        t(
-          'Demo only. No real money is transferred.',
-          'ಇದು ಡೆಮೊ ಮಾತ್ರ. ನಿಜವಾದ ಹಣ ವರ್ಗಾವಣೆ ಆಗುವುದಿಲ್ಲ.',
-        ),
-        style: const TextStyle(fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 12, color: AppColors.textSoft),
       ),
     ]);
   }
@@ -661,53 +1091,267 @@ class _TrustPayHomeState extends State<TrustPayHome> {
   }
 
   Widget sendPage() {
-    return section(t('Send Money Safely', 'ಸುರಕ್ಷಿತವಾಗಿ ಹಣ ಕಳುಹಿಸಿ'), [
-      Text(t('Session: $sessionId', 'ಸೆಷನ್: $sessionId')),
-      Text(t('Amount: ${money(amount)}', 'ಮೊತ್ತ: ${money(amount)}')),
-      const SizedBox(height: 10),
-      CheckboxListTile(
-        value: firstPayment,
-        title: Text(t('First-time recipient', 'ಮೊದಲ ಬಾರಿಗೆ ಹಣ ಸ್ವೀಕರಿಸುವವರು')),
-        onChanged: (value) {
-          setState(() {
-            firstPayment = value ?? false;
-          });
-        },
-      ),
-      CheckboxListTile(
-        value: recipientMatches,
-        title: Text(
-          t(
-            'Recipient matches merchant',
-            'ಸ್ವೀಕರಿಸುವವರ ಹೆಸರು ವ್ಯಾಪಾರಿಗೆ ಹೊಂದುತ್ತದೆ',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // PAGE HEADING
+        Text(
+          t('Check before you pay.', 'ಪಾವತಿ ಮಾಡುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.'),
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            color: AppColors.navy,
           ),
         ),
-        onChanged: (value) {
-          setState(() {
-            recipientMatches = value ?? false;
-          });
-        },
-      ),
-      CheckboxListTile(
-        value: urgentRequest,
-        title: Text(t('Urgent payment pressure', 'ತಕ್ಷಣ ಪಾವತಿಸಲು ಒತ್ತಡ')),
-        onChanged: (value) {
-          setState(() {
-            urgentRequest = value ?? false;
-          });
-        },
-      ),
-      const SizedBox(height: 12),
-      riskPanel(),
-      const SizedBox(height: 15),
-      FilledButton.icon(
-        onPressed: paymentStatus == 'Awaiting payment' ? simulatePayment : null,
-        icon: const Icon(Icons.send),
-        label: Text(t('Simulate Payment', 'ಡೆಮೊ ಪಾವತಿ ಮಾಡಿ')),
-      ),
-      const SizedBox(height: 12),
-      Text(t('Status: $translatedStatus', 'ಸ್ಥಿತಿ: $translatedStatus')),
-    ]);
+
+        const SizedBox(height: 8),
+
+        Text(
+          t(
+            'Review payment details and potential risks.',
+            'ಪಾವತಿ ವಿವರಗಳು ಮತ್ತು ಸಂಭಾವ್ಯ ಅಪಾಯಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.',
+          ),
+          style: const TextStyle(fontSize: 14, color: AppColors.textSoft),
+        ),
+
+        const SizedBox(height: 20),
+
+        // MERCHANT DETAILS CARD
+        softCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.lavender,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Icon(
+                      Icons.storefront_outlined,
+                      color: AppColors.lavenderDark,
+                      size: 30,
+                    ),
+                  ),
+
+                  const SizedBox(width: 14),
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t('ABC Grocery Store', 'ABC ದಿನಸಿ ಅಂಗಡಿ'),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.navy,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          t('Demo merchant', 'ಡೆಮೊ ವ್ಯಾಪಾರಿ'),
+                          style: const TextStyle(color: AppColors.textSoft),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const Divider(height: 30),
+
+              Text(
+                t('Payment amount', 'ಪಾವತಿ ಮೊತ್ತ'),
+                style: const TextStyle(color: AppColors.textSoft),
+              ),
+
+              const SizedBox(height: 6),
+
+              Text(
+                money(amount),
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.navy,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                t('Session: $sessionId', 'ಸೆಷನ್: $sessionId'),
+                style: const TextStyle(fontSize: 12, color: AppColors.textSoft),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // LIVE RISK SCORE - EXISTING LOGIC
+        riskPanel(),
+
+        const SizedBox(height: 24),
+
+        sectionTitle(t('Payment safety checks', 'ಪಾವತಿ ಸುರಕ್ಷತಾ ಪರಿಶೀಲನೆ')),
+
+        const SizedBox(height: 12),
+
+        // EXISTING SAFETY CHECKBOXES
+        softCard(
+          child: Column(
+            children: [
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                activeColor: AppColors.navy,
+                value: firstPayment,
+                title: Text(
+                  t('First-time recipient', 'ಮೊದಲ ಬಾರಿಗೆ ಹಣ ಸ್ವೀಕರಿಸುವವರು'),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    firstPayment = value ?? false;
+                  });
+                },
+              ),
+
+              const Divider(),
+
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                activeColor: AppColors.navy,
+                value: recipientMatches,
+                title: Text(
+                  t(
+                    'Recipient matches merchant',
+                    'ಸ್ವೀಕರಿಸುವವರ ಹೆಸರು ವ್ಯಾಪಾರಿಗೆ ಹೊಂದುತ್ತದೆ',
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    recipientMatches = value ?? false;
+                  });
+                },
+              ),
+
+              const Divider(),
+
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                activeColor: AppColors.navy,
+                value: urgentRequest,
+                title: Text(
+                  t('Urgent payment pressure', 'ತಕ್ಷಣ ಪಾವತಿಸಲು ಒತ್ತಡ'),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    urgentRequest = value ?? false;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // EXISTING PAYMENT FUNCTION
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.navy,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 58),
+            ),
+            onPressed: paymentStatus == 'Awaiting payment'
+                ? simulatePayment
+                : null,
+            icon: const Icon(Icons.arrow_forward_rounded),
+            label: Text(
+              t('Proceed to demo payment', 'ಡೆಮೊ ಪಾವತಿಗೆ ಮುಂದುವರಿಯಿರಿ'),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // CURRENT PAYMENT STATUS
+        softCard(
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, color: AppColors.lavenderDark),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  t('Status: $translatedStatus', 'ಸ್ಥಿತಿ: $translatedStatus'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navy,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // PAYMENT SAFETY WARNING
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF3D9),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFB45309),
+                size: 28,
+              ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t('Stay alert', 'ಎಚ್ಚರವಾಗಿರಿ'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF92400E),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      t(
+                        'Always check the recipient and amount before confirming a payment. This is a demo only.',
+                        'ಪಾವತಿಯನ್ನು ದೃಢೀಕರಿಸುವ ಮೊದಲು ಸ್ವೀಕರಿಸುವವರು ಮತ್ತು ಮೊತ್ತವನ್ನು ಪರಿಶೀಲಿಸಿ. ಇದು ಡೆಮೊ ಮಾತ್ರ.',
+                      ),
+                      style: const TextStyle(
+                        color: Color(0xFF92400E),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+      ],
+    );
   }
 
   void openSavedRequest(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
@@ -834,70 +1478,331 @@ class _TrustPayHomeState extends State<TrustPayHome> {
   }
 
   Widget receivePage() {
-    return section(t('Receive Money', 'ಹಣ ಸ್ವೀಕರಿಸಿ'), [
-      Text(t('Merchant: ABC Grocery Store', 'ವ್ಯಾಪಾರಿ: ABC ದಿನಸಿ ಅಂಗಡಿ')),
-      const SizedBox(height: 15),
-      TextField(
-        controller: amountController,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          labelText: t('Enter amount (₹)', 'ಮೊತ್ತ ನಮೂದಿಸಿ (₹)'),
-          border: const OutlineInputBorder(),
-        ),
-      ),
-      const SizedBox(height: 15),
-      FilledButton.icon(
-        onPressed: createRequest,
-        icon: const Icon(Icons.add),
-        label: Text(t('Create Payment Request', 'ಪಾವತಿ ವಿನಂತಿ ರಚಿಸಿ')),
-      ),
-      const SizedBox(height: 15),
-      Text(t('Session: $sessionId', 'ಸೆಷನ್: $sessionId')),
-      Text(t('Status: $translatedStatus', 'ಸ್ಥಿತಿ: $translatedStatus')),
-      const SizedBox(height: 15),
-      SwitchListTile(
-        value: receiptMissing,
-        title: Text(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        sectionTitle(
+          t('Receive Payment', 'ಪಾವತಿ ಸ್ವೀಕರಿಸಿ'),
           t(
-            'Simulate missing merchant receipt',
-            'ವ್ಯಾಪಾರಿಯ ಸ್ವೀಕೃತಿ ಕಾಣೆಯಾಗಿರುವಂತೆ ತೋರಿಸಿ',
+            'Create and verify payment requests.',
+            'ಪಾವತಿ ವಿನಂತಿಗಳನ್ನು ರಚಿಸಿ ಮತ್ತು ಪರಿಶೀಲಿಸಿ.',
           ),
         ),
-        subtitle: Text(
-          t(
-            'Enable this to demonstrate a dispute.',
-            'ವಿವಾದ ತೋರಿಸಲು ಇದನ್ನು ಆನ್ ಮಾಡಿ.',
-          ),
-        ),
-        onChanged: (value) {
-          setState(() {
-            receiptMissing = value;
-          });
-        },
-      ),
-      const SizedBox(height: 12),
-      FilledButton.icon(
-        onPressed: paymentStatus == 'Awaiting merchant verification'
-            ? verifyMerchantReceipt
-            : null,
-        icon: const Icon(Icons.verified),
-        label: Text(t('Verify Demo Receipt', 'ಡೆಮೊ ಸ್ವೀಕೃತಿ ಪರಿಶೀಲಿಸಿ')),
-      ),
-      const SizedBox(height: 12),
-      Text(
-        t(
-          'Verification uses simulated records, not '
-              'real bank or UPI confirmation.',
-          'ಪರಿಶೀಲನೆ ಡೆಮೊ ದಾಖಲೆಗಳನ್ನು ಬಳಸುತ್ತದೆ, '
-              'ನಿಜವಾದ ಬ್ಯಾಂಕ್ ಅಥವಾ UPI ದೃಢೀಕರಣವಲ್ಲ.',
-        ),
-      ),
 
-      const SizedBox(height: 24),
-      const Divider(),
-      const SizedBox(height: 16),
-      savedRequestsPanel(),
-    ]);
+        const SizedBox(height: 18),
+
+        // PREMIUM MERCHANT CARD
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.navy, AppColors.navySoft],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x220A1330),
+                blurRadius: 20,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0x2259F0B5),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.storefront_rounded,
+                      color: AppColors.mint,
+                      size: 30,
+                    ),
+                  ),
+
+                  const SizedBox(width: 14),
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t('ABC Grocery Store', 'ABC ದಿನಸಿ ಅಂಗಡಿ'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+
+                        const SizedBox(height: 5),
+
+                        Text(
+                          t('Demo merchant', 'ಡೆಮೊ ವ್ಯಾಪಾರಿ'),
+                          style: const TextStyle(
+                            color: AppColors.mint,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              Text(
+                t('Current request amount', 'ಪ್ರಸ್ತುತ ವಿನಂತಿಯ ಮೊತ್ತ'),
+                style: const TextStyle(color: Color(0xFFD7DEEE), fontSize: 14),
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                money(amount),
+                style: const TextStyle(
+                  fontSize: 36,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+
+              const SizedBox(height: 22),
+
+              // EXISTING AMOUNT CONTROLLER
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: AppColors.navySoft,
+                  labelText: t('Enter amount', 'ಮೊತ್ತ ನಮೂದಿಸಿ'),
+                  labelStyle: const TextStyle(color: Color(0xFFD7DEEE)),
+                  prefixText: '₹ ',
+                  prefixStyle: const TextStyle(color: AppColors.mint),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // EXISTING FIREBASE REQUEST FUNCTION
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.mint,
+                    foregroundColor: AppColors.navy,
+                    minimumSize: const Size(0, 56),
+                  ),
+                  onPressed: createRequest,
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: Text(
+                    t('Create Payment Request', 'ಪಾವತಿ ವಿನಂತಿ ರಚಿಸಿ'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 22),
+
+        // CURRENT SESSION DETAILS
+        softCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              sectionTitle(t('Payment Session', 'ಪಾವತಿ ಸೆಷನ್')),
+
+              const SizedBox(height: 14),
+
+              Row(
+                children: [
+                  const Icon(
+                    Icons.receipt_long_outlined,
+                    color: AppColors.lavenderDark,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(t('Session: $sessionId', 'ಸೆಷನ್: $sessionId')),
+                  ),
+                ],
+              ),
+
+              const Divider(height: 26),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.mintSoft,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  t('Status: $translatedStatus', 'ಸ್ಥಿತಿ: $translatedStatus'),
+                  style: const TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        sectionTitle(t('Merchant Verification', 'ವ್ಯಾಪಾರಿ ಪರಿಶೀಲನೆ')),
+
+        const SizedBox(height: 12),
+
+        // VERIFICATION CARD
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.lavender,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.verified_user_outlined,
+                    color: AppColors.lavenderDark,
+                    size: 36,
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: Text(
+                      t('Verify Payment Receipt', 'ಪಾವತಿ ಸ್ವೀಕೃತಿ ಪರಿಶೀಲಿಸಿ'),
+                      style: const TextStyle(
+                        color: AppColors.navy,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+
+              // EXISTING DISPUTE SIMULATION SWITCH
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: receiptMissing,
+                title: Text(
+                  t(
+                    'Simulate missing merchant receipt',
+                    'ವ್ಯಾಪಾರಿಯ ಸ್ವೀಕೃತಿ ಕಾಣೆಯಾಗಿರುವಂತೆ ತೋರಿಸಿ',
+                  ),
+                  style: const TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  t(
+                    'Enable this to demonstrate a dispute.',
+                    'ವಿವಾದ ತೋರಿಸಲು ಇದನ್ನು ಆನ್ ಮಾಡಿ.',
+                  ),
+                  style: const TextStyle(color: AppColors.textSoft),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    receiptMissing = value;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 15),
+
+              // EXISTING MERCHANT VERIFICATION FUNCTION
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.navy,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 56),
+                  ),
+                  onPressed: paymentStatus == 'Awaiting merchant verification'
+                      ? verifyMerchantReceipt
+                      : null,
+                  icon: const Icon(Icons.verified),
+                  label: Text(
+                    t('Verify Demo Receipt', 'ಡೆಮೊ ಸ್ವೀಕೃತಿ ಪರಿಶೀಲಿಸಿ'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // DEMO SAFETY NOTICE
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF3D9),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline, color: Color(0xFFB45309)),
+
+              const SizedBox(width: 10),
+
+              Expanded(
+                child: Text(
+                  t(
+                    'Verification uses simulated records, not real bank or UPI confirmation.',
+                    'ಪರಿಶೀಲನೆ ಡೆಮೊ ದಾಖಲೆಗಳನ್ನು ಬಳಸುತ್ತದೆ, ನಿಜವಾದ ಬ್ಯಾಂಕ್ ಅಥವಾ UPI ದೃಢೀಕರಣವಲ್ಲ.',
+                  ),
+                  style: const TextStyle(
+                    color: Color(0xFF92400E),
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // EXISTING FIREBASE SAVED REQUESTS
+        softCard(child: savedRequestsPanel()),
+
+        const SizedBox(height: 24),
+      ],
+    );
   }
 
   Widget firebaseDisputeTimeline() {
@@ -1021,72 +1926,384 @@ class _TrustPayHomeState extends State<TrustPayHome> {
   }
 
   Widget disputesPage() {
-    return section(t('Dispute Replay & Review', 'ವಿವಾದ ಮರುಪರಿಶೀಲನೆ'), [
-      Text(
-        t('Payment Session: $sessionId', 'ಪಾವತಿ ಸೆಷನ್: $sessionId'),
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 10),
-      Text(
-        t(
-          'Payment Status: $translatedStatus',
-          'ಪಾವತಿ ಸ್ಥಿತಿ: $translatedStatus',
-        ),
-      ),
-      const SizedBox(height: 20),
-      Text(
-        t('Transaction Timeline', 'ವಹಿವಾಟಿನ ಸಮಯರೇಖೆ'),
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-      if (timeline.isEmpty)
-        Text(t('No transaction events yet.', 'ಇನ್ನೂ ಯಾವುದೇ ವಹಿವಾಟು ಇಲ್ಲ.')),
-      for (int i = 0; i < timeline.length; i++)
-        ListTile(
-          leading: CircleAvatar(child: Text('${i + 1}')),
-          title: Text(timeline[i]),
-        ),
+    final isMatched = paymentStatus == 'Matched';
+    final needsReview = paymentStatus == 'Mismatch - Needs review';
 
-      const SizedBox(height: 20),
-      const Divider(),
-      const SizedBox(height: 16),
-      firebaseDisputeTimeline(),
+    final statusColor = isMatched
+        ? AppColors.mint
+        : needsReview
+        ? const Color(0xFFFF9B9B)
+        : AppColors.lavender;
 
-      const SizedBox(height: 15),
-      if (paymentStatus == 'Mismatch - Needs review') ...[
-        Text(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        sectionTitle(
+          t('Dispute Replay', 'ವಿವಾದ ಮರುಪರಿಶೀಲನೆ'),
           t(
-            'A payment mismatch was detected.',
-            'ಪಾವತಿಯಲ್ಲಿ ಹೊಂದಾಣಿಕೆ ಸಮಸ್ಯೆ ಕಂಡುಬಂದಿದೆ.',
-          ),
-          style: const TextStyle(
-            color: Colors.red,
-            fontWeight: FontWeight.bold,
+            'Track your payment verification journey.',
+            'ನಿಮ್ಮ ಪಾವತಿ ಪರಿಶೀಲನೆಯ ಹಂತಗಳನ್ನು ವೀಕ್ಷಿಸಿ.',
           ),
         ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed: reviewSubmitted ? null : submitForReview,
-          icon: const Icon(Icons.support_agent),
-          label: Text(
-            reviewSubmitted
-                ? t('Submitted for Review', 'ಪರಿಶೀಲನೆಗೆ ಸಲ್ಲಿಸಲಾಗಿದೆ')
-                : t('Submit for Human Review', 'ಮಾನವ ಪರಿಶೀಲನೆಗೆ ಸಲ್ಲಿಸಿ'),
+
+        const SizedBox(height: 20),
+
+        // PREMIUM PAYMENT SESSION CARD
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.navy, AppColors.navySoft],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x220A1330),
+                blurRadius: 20,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0x2259F0B5),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.fingerprint,
+                      color: AppColors.mint,
+                      size: 32,
+                    ),
+                  ),
+
+                  const SizedBox(width: 14),
+
+                  Expanded(
+                    child: Text(
+                      t('Payment Session', 'ಪಾವತಿ ಸೆಷನ್'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              Text(
+                sessionId,
+                style: const TextStyle(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              const Divider(color: Color(0xFF344466)),
+
+              const SizedBox(height: 12),
+
+              Text(
+                t('Verification Status', 'ಪರಿಶೀಲನೆ ಸ್ಥಿತಿ'),
+                style: const TextStyle(color: Color(0xFFD7DEEE), fontSize: 13),
+              ),
+
+              const SizedBox(height: 10),
+
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF24345A),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isMatched
+                          ? Icons.verified_user
+                          : needsReview
+                          ? Icons.warning_amber_rounded
+                          : Icons.pending_outlined,
+                      color: statusColor,
+                      size: 26,
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: Text(
+                        translatedStatus,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: statusColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        if (reviewSubmitted)
-          Text(
-            t('Review Status: Pending (Demo)', 'ಪರಿಶೀಲನೆ ಸ್ಥಿತಿ: ಬಾಕಿ (ಡೆಮೊ)'),
+
+        const SizedBox(height: 26),
+
+        // EXISTING TRANSACTION TIMELINE
+        sectionTitle(
+          t('Transaction Timeline', 'ವಹಿವಾಟಿನ ಸಮಯರೇಖೆ'),
+          t(
+            'Follow each recorded payment event.',
+            'ದಾಖಲಾದ ಪ್ರತಿಯೊಂದು ಪಾವತಿ ಘಟನೆಯನ್ನು ವೀಕ್ಷಿಸಿ.',
           ),
+        ),
+
+        const SizedBox(height: 14),
+
+        softCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (timeline.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    t(
+                      'No transaction events yet.',
+                      'ಇನ್ನೂ ಯಾವುದೇ ವಹಿವಾಟು ಇಲ್ಲ.',
+                    ),
+                  ),
+                ),
+
+              for (int i = 0; i < timeline.length; i++)
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        width: 44,
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 19,
+                              backgroundColor: AppColors.mintSoft,
+                              child: Text(
+                                '${i + 1}',
+                                style: const TextStyle(
+                                  color: AppColors.navy,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+
+                            if (i < timeline.length - 1)
+                              Expanded(
+                                child: Container(
+                                  width: 2,
+                                  color: AppColors.mintSoft,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppColors.pageBg,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              timeline[i],
+                              style: const TextStyle(
+                                color: AppColors.navy,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // EXISTING FIREBASE HISTORY
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.lavender,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.cloud_outlined,
+                size: 32,
+                color: AppColors.lavenderDark,
+              ),
+
+              const SizedBox(height: 12),
+
+              firebaseDisputeTimeline(),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // EXISTING MISMATCH AND REVIEW LOGIC
+        if (needsReview) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFE9E5),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Color(0xFFB91C1C),
+                      size: 32,
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: Text(
+                        t('Payment Mismatch', 'ಪಾವತಿ ಹೊಂದಾಣಿಕೆ ಸಮಸ್ಯೆ'),
+                        style: const TextStyle(
+                          color: Color(0xFFB91C1C),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                Text(
+                  t(
+                    'A payment mismatch was detected.',
+                    'ಪಾವತಿಯಲ್ಲಿ ಹೊಂದಾಣಿಕೆ ಸಮಸ್ಯೆ ಕಂಡುಬಂದಿದೆ.',
+                  ),
+                  style: const TextStyle(color: Color(0xFF991B1B)),
+                ),
+
+                const SizedBox(height: 18),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.navy,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(0, 56),
+                    ),
+                    onPressed: reviewSubmitted ? null : submitForReview,
+                    icon: const Icon(Icons.support_agent),
+                    label: Text(
+                      reviewSubmitted
+                          ? t('Submitted for Review', 'ಪರಿಶೀಲನೆಗೆ ಸಲ್ಲಿಸಲಾಗಿದೆ')
+                          : t(
+                              'Submit for Human Review',
+                              'ಮಾನವ ಪರಿಶೀಲನೆಗೆ ಸಲ್ಲಿಸಿ',
+                            ),
+                    ),
+                  ),
+                ),
+
+                if (reviewSubmitted) ...[
+                  const SizedBox(height: 14),
+
+                  Text(
+                    t(
+                      'Review Status: Pending (Demo)',
+                      'ಪರಿಶೀಲನೆ ಸ್ಥಿತಿ: ಬಾಕಿ (ಡೆಮೊ)',
+                    ),
+                    style: const TextStyle(
+                      color: Color(0xFF991B1B),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+
+        // EXISTING SUCCESS STATUS
+        if (isMatched)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.mintSoft,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.verified_rounded,
+                  color: Color(0xFF087F45),
+                  size: 38,
+                ),
+
+                const SizedBox(width: 14),
+
+                Expanded(
+                  child: Text(
+                    t(
+                      'Demo payment records matched successfully.',
+                      'ಡೆಮೊ ಪಾವತಿ ದಾಖಲೆಗಳು ಯಶಸ್ವಿಯಾಗಿ ಹೊಂದಿವೆ.',
+                    ),
+                    style: const TextStyle(
+                      color: Color(0xFF087F45),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        const SizedBox(height: 24),
       ],
-      if (paymentStatus == 'Matched')
-        Text(
-          t(
-            'Demo payment records matched successfully.',
-            'ಡೆಮೊ ಪಾವತಿ ದಾಖಲೆಗಳು ಯಶಸ್ವಿಯಾಗಿ ಹೊಂದಿವೆ.',
-          ),
-          style: const TextStyle(color: Colors.green),
-        ),
-    ]);
+    );
   }
 
   Widget firebaseFinancialOverview() {
@@ -1248,6 +2465,93 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     ];
 
     return section(t('Financial Insights', 'ಹಣಕಾಸು ಮಾಹಿತಿ'), [
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.navy, AppColors.navySoft],
+          ),
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.account_balance_wallet_outlined,
+              color: AppColors.mint,
+              size: 32,
+            ),
+            const SizedBox(height: 15),
+            Text(
+              t('Remaining Budget', 'ಉಳಿದ ಬಜೆಟ್'),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                money(monthlyBudget - totalExpenses),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              t(
+                'Monthly Budget: ${money(monthlyBudget)}',
+                'ಮಾಸಿಕ ಬಜೆಟ್: ${money(monthlyBudget)}',
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              t(
+                'Total Expenses: ${money(totalExpenses)}',
+                'ಒಟ್ಟು ಖರ್ಚು: ${money(totalExpenses)}',
+              ),
+              style: const TextStyle(color: AppColors.mint),
+            ),
+            const SizedBox(height: 18),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: LinearProgressIndicator(
+                value: monthlyBudget > 0
+                    ? (totalExpenses / monthlyBudget).clamp(0.0, 1.0).toDouble()
+                    : 0.0,
+                minHeight: 10,
+                backgroundColor: const Color(0xFF344466),
+                color: AppColors.mint,
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      const SizedBox(height: 18),
+
+      Row(
+        children: [
+          metricChip(
+            icon: Icons.account_balance_wallet_outlined,
+            value: money(totalCollections),
+            label: t('Demo Collections', 'ಡೆಮೊ ಸ್ವೀಕೃತಿಗಳು'),
+            bg: AppColors.mintSoft,
+          ),
+          const SizedBox(width: 12),
+          metricChip(
+            icon: Icons.receipt_long_outlined,
+            value: money(totalExpenses),
+            label: t('Total Expenses', 'ಒಟ್ಟು ಖರ್ಚು'),
+            bg: AppColors.lavender,
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 24),
       firebaseFinancialOverview(),
       const SizedBox(height: 24),
       const Divider(),
@@ -1268,33 +2572,15 @@ class _TrustPayHomeState extends State<TrustPayHome> {
       ),
       const SizedBox(height: 10),
       FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.navy,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 54),
+        ),
         onPressed: updateBudget,
         child: Text(t('Save Budget', 'ಬಜೆಟ್ ಉಳಿಸಿ')),
       ),
-      const SizedBox(height: 20),
-      Text(
-        t(
-          'Monthly Budget: ${money(monthlyBudget)}',
-          'ಮಾಸಿಕ ಬಜೆಟ್: ${money(monthlyBudget)}',
-        ),
-      ),
-      Text(
-        t(
-          'Total Expenses: ${money(totalExpenses)}',
-          'ಒಟ್ಟು ಖರ್ಚು: ${money(totalExpenses)}',
-        ),
-      ),
-      Text(
-        t(
-          'Budget Left: ${money(monthlyBudget - totalExpenses)}',
-          'ಉಳಿದ ಬಜೆಟ್: ${money(monthlyBudget - totalExpenses)}',
-        ),
-      ),
-      const SizedBox(height: 12),
-      LinearProgressIndicator(
-        value: (totalExpenses / monthlyBudget).clamp(0.0, 1.0).toDouble(),
-        minHeight: 10,
-      ),
+
       const SizedBox(height: 25),
       Text(
         t('Add Expense', 'ಖರ್ಚು ಸೇರಿಸಿ'),
@@ -1329,6 +2615,11 @@ class _TrustPayHomeState extends State<TrustPayHome> {
       ),
       const SizedBox(height: 10),
       FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.mint,
+          foregroundColor: AppColors.navy,
+          minimumSize: const Size(double.infinity, 56),
+        ),
         onPressed: addExpense,
         icon: const Icon(Icons.add),
         label: Text(t('Add Expense', 'ಖರ್ಚು ಸೇರಿಸಿ')),
@@ -1462,35 +2753,73 @@ class _TrustPayHomeState extends State<TrustPayHome> {
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentPage,
-        onDestinationSelected: (index) {
-          setState(() {
-            currentPage = index;
-          });
-        },
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.home),
-            label: t('Home', 'ಮುಖಪುಟ'),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.navy,
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x22000000),
+                blurRadius: 18,
+                offset: Offset(0, 8),
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.send),
-            label: t('Send', 'ಕಳುಹಿಸಿ'),
+          child: NavigationBarTheme(
+            data: NavigationBarThemeData(
+              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
+                (states) => TextStyle(
+                  color: states.contains(WidgetState.selected)
+                      ? AppColors.mint
+                      : Colors.white70,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            child: NavigationBar(
+              height: 74,
+              backgroundColor: Colors.transparent,
+              indicatorColor: const Color(0x1F59F0B5),
+              selectedIndex: currentPage,
+              onDestinationSelected: (index) {
+                setState(() {
+                  currentPage = index;
+                });
+              },
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              destinations: [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined, color: Colors.white70),
+                  selectedIcon: Icon(Icons.home, color: AppColors.mint),
+                  label: t('Home', 'ಮುಖಪುಟ'),
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.send_outlined, color: Colors.white70),
+                  selectedIcon: Icon(Icons.send, color: AppColors.mint),
+                  label: t('Send', 'ಕಳುಹಿಸಿ'),
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.storefront_outlined, color: Colors.white70),
+                  selectedIcon: Icon(Icons.storefront, color: AppColors.mint),
+                  label: t('Receive', 'ಸ್ವೀಕರಿಸಿ'),
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.history_outlined, color: Colors.white70),
+                  selectedIcon: Icon(Icons.history, color: AppColors.mint),
+                  label: t('Disputes', 'ವಿವಾದ'),
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.bar_chart_outlined, color: Colors.white70),
+                  selectedIcon: Icon(Icons.bar_chart, color: AppColors.mint),
+                  label: t('Insights', 'ಮಾಹಿತಿ'),
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.store),
-            label: t('Receive', 'ಸ್ವೀಕರಿಸಿ'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.history),
-            label: t('Disputes', 'ವಿವಾದಗಳು'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.bar_chart),
-            label: t('Insights', 'ವಿಶ್ಲೇಷಣೆ'),
-          ),
-        ],
+        ),
       ),
     );
   }
