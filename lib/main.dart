@@ -1,6 +1,19 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-void main() {
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (FirebaseAuth.instance.currentUser == null) {
+    await FirebaseAuth.instance.signInAnonymously();
+  }
+
   runApp(const TrustPayApp());
 }
 
@@ -12,10 +25,53 @@ class TrustPayApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'TrustPay 360',
+
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF10264D),
+          primary: const Color(0xFF10264D),
+          secondary: const Color(0xFF00B8A9),
+          surface: Colors.white,
+        ),
+
+        scaffoldBackgroundColor: const Color(0xFFF5F8FC),
+
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF10264D),
+          foregroundColor: Colors.white,
+          centerTitle: false,
+          elevation: 0,
+        ),
+
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF10264D),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       ),
+
       home: const TrustPayHome(),
     );
   }
@@ -33,7 +89,11 @@ class _TrustPayHomeState extends State<TrustPayHome> {
   bool useKannada = false;
 
   int sessionNumber = 1000;
+  bool isSavingRequest = false;
   String sessionId = 'No payment request';
+
+  String? activeRequestDocId;
+
   String paymentStatus = 'Not started';
 
   double amount = 500;
@@ -153,7 +213,9 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     return value;
   }
 
-  void createRequest() {
+  Future<void> createRequest() async {
+    if (isSavingRequest) return;
+
     final value = parseAmount(amountController.text);
 
     if (value == null) {
@@ -164,23 +226,104 @@ class _TrustPayHomeState extends State<TrustPayHome> {
       return;
     }
 
-    setState(() {
-      amount = value;
-      sessionNumber++;
-      sessionId = 'TP360-$sessionNumber';
-      paymentStatus = 'Awaiting payment';
-      receiptMissing = false;
-      reviewSubmitted = false;
+    final user = FirebaseAuth.instance.currentUser;
 
-      timeline
-        ..clear()
-        ..add('Merchant created a payment request');
+    if (user == null) {
+      showMessage(
+        'Please sign in before creating a request',
+        'ವಿನಂತಿ ರಚಿಸುವ ಮೊದಲು ಸೈನ್ ಇನ್ ಮಾಡಿ',
+      );
+      return;
+    }
+
+    setState(() {
+      isSavingRequest = true;
     });
 
-    showMessage(
-      'Payment request created successfully',
-      'ಪಾವತಿ ವಿನಂತಿ ಯಶಸ್ವಿಯಾಗಿ ರಚಿಸಲಾಗಿದೆ',
-    );
+    try {
+      final savedDoc = await FirebaseFirestore.instance
+          .collection('payment_requests')
+          .add({
+            'merchantId': user.uid,
+            'merchantName': 'ABC Grocery Store',
+            'amount': value,
+            'status': 'Awaiting payment',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+      if (!mounted) return;
+
+      setState(() {
+        activeRequestDocId = savedDoc.id;
+
+        amount = value;
+        sessionNumber++;
+        sessionId = 'TP360-$sessionNumber';
+        paymentStatus = 'Awaiting payment';
+        receiptMissing = false;
+        reviewSubmitted = false;
+
+        timeline
+          ..clear()
+          ..add('Merchant created a payment request');
+      });
+
+      showMessage(
+        'Payment request saved to Firebase successfully',
+        'ಪಾವತಿ ವಿನಂತಿ ಫೈರ್‌ಬೇಸ್‌ನಲ್ಲಿ ಯಶಸ್ವಿಯಾಗಿ ಉಳಿಸಲಾಗಿದೆ',
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      debugPrint('Firestore save failed: $error');
+
+      showMessage(
+        'Could not save payment request. Please try again.',
+        'ಪಾವತಿ ವಿನಂತಿ ಉಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSavingRequest = false;
+        });
+      }
+    }
+  }
+
+  Future<void> saveDemoEvent(String eventType) async {
+    final requestId = activeRequestDocId;
+
+    debugPrint('FIREBASE DISPUTE REQUEST ID: $requestId');
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (requestId == null || user == null) {
+      debugPrint('No active Firebase payment request.');
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('payment_requests')
+          .doc(requestId)
+          .collection('demo_events')
+          .add({
+            'eventType': eventType,
+            'createdBy': user.uid,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+      debugPrint('Demo event saved: $eventType');
+    } catch (error) {
+      debugPrint('Firebase event error: $error');
+
+      if (mounted) {
+        showMessage(
+          'Could not save demo event to Firebase',
+          'ಡೆಮೊ ಘಟನೆಯನ್ನು ಫೈರ್‌ಬೇಸ್‌ನಲ್ಲಿ ಉಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ',
+        );
+      }
+    }
   }
 
   void simulatePayment() {
@@ -188,7 +331,7 @@ class _TrustPayHomeState extends State<TrustPayHome> {
       showMessage('Create a payment request first', 'ಮೊದಲು ಪಾವತಿ ವಿನಂತಿ ರಚಿಸಿ');
       return;
     }
-
+    saveDemoEvent('demo_payment_submitted');
     if (!recipientMatches) {
       showMessage(
         'Recipient mismatch. Check the recipient first.',
@@ -210,6 +353,9 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     if (paymentStatus != 'Awaiting merchant verification') {
       return;
     }
+    saveDemoEvent(
+      receiptMissing ? 'demo_receipt_missing' : 'demo_receipt_matched',
+    );
 
     setState(() {
       timeline.add('Merchant checked demo receipt');
@@ -237,7 +383,7 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     if (paymentStatus != 'Mismatch - Needs review' || reviewSubmitted) {
       return;
     }
-
+    saveDemoEvent('demo_review_submitted');
     setState(() {
       reviewSubmitted = true;
       timeline.add('Submitted to demo human-review queue');
@@ -308,6 +454,109 @@ class _TrustPayHomeState extends State<TrustPayHome> {
 
   Widget homePage() {
     return section(t('Welcome to TrustPay 360', 'TrustPay 360 ಗೆ ಸ್ವಾಗತ'), [
+      Card(
+        color: const Color(0xFF10264D),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.shield_outlined,
+                color: Color(0xFF00B8A9),
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'TrustPay 360',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                t(
+                  'One Payment. Two-Sided Protection.',
+                  'ಒಂದು ಪಾವತಿ. ಎರಡೂ ಬದಿಗೂ ರಕ್ಷಣೆ.',
+                ),
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                t(
+                  'Fraud awareness, demo payment verification and dispute tracking.',
+                  'ವಂಚನೆ ಜಾಗೃತಿ, ಡೆಮೊ ಪಾವತಿ ಪರಿಶೀಲನೆ ಮತ್ತು ವಿವಾದ ಟ್ರ್ಯಾಕಿಂಗ್.',
+                ),
+                style: const TextStyle(color: Color(0xFFDDE8F3)),
+              ),
+            ],
+          ),
+        ),
+      ),
+
+      const SizedBox(height: 24),
+
+      Text(
+        t('Quick Actions', 'ತ್ವರಿತ ಆಯ್ಕೆಗಳು'),
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF10264D),
+        ),
+      ),
+
+      const SizedBox(height: 14),
+
+      Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          FilledButton.icon(
+            onPressed: () {
+              setState(() {
+                currentPage = 1;
+              });
+            },
+            icon: const Icon(Icons.send),
+            label: Text(t('Send Money', 'ಹಣ ಕಳುಹಿಸಿ')),
+          ),
+
+          FilledButton.icon(
+            onPressed: () {
+              setState(() {
+                currentPage = 2;
+              });
+            },
+            icon: const Icon(Icons.store),
+            label: Text(t('Receive Money', 'ಹಣ ಸ್ವೀಕರಿಸಿ')),
+          ),
+
+          FilledButton.icon(
+            onPressed: () {
+              setState(() {
+                currentPage = 3;
+              });
+            },
+            icon: const Icon(Icons.history),
+            label: Text(t('Disputes', 'ವಿವಾದಗಳು')),
+          ),
+
+          FilledButton.icon(
+            onPressed: () {
+              setState(() {
+                currentPage = 4;
+              });
+            },
+            icon: const Icon(Icons.bar_chart),
+            label: Text(t('Insights', 'ವಿಶ್ಲೇಷಣೆ')),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 24),
+
       Text(
         t(
           'One Payment. Two-Sided Protection.',
@@ -461,6 +710,129 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     ]);
   }
 
+  void openSavedRequest(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+
+    final savedAmount = (data['amount'] as num).toDouble();
+    final savedStatus = data['status'] as String? ?? 'Awaiting payment';
+
+    setState(() {
+      amount = savedAmount;
+      amountController.text = savedAmount.toStringAsFixed(2);
+
+      activeRequestDocId = doc.id;
+
+      sessionId = 'TP360-${doc.id.substring(0, 8).toUpperCase()}';
+      paymentStatus = savedStatus;
+
+      receiptMissing = false;
+      reviewSubmitted = false;
+
+      timeline
+        ..clear()
+        ..add('Merchant reopened a saved payment request');
+
+      currentPage = 2;
+    });
+
+    showMessage(
+      'Saved payment request opened successfully',
+      'ಉಳಿಸಿದ ಪಾವತಿ ವಿನಂತಿ ಯಶಸ್ವಿಯಾಗಿ ತೆರೆಯಲಾಗಿದೆ',
+    );
+  }
+
+  Widget savedRequestsPanel() {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return Text(
+        t(
+          'Please sign in to view saved requests.',
+          'ಉಳಿಸಿದ ವಿನಂತಿಗಳನ್ನು ನೋಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.',
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          t('Saved Payment Requests', 'ಉಳಿಸಿದ ಪಾವತಿ ವಿನಂತಿಗಳು'),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('payment_requests')
+              .where('merchantId', isEqualTo: user.uid)
+              .limit(20)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Text(
+                t(
+                  'Could not load saved requests.',
+                  'ಉಳಿಸಿದ ವಿನಂತಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.',
+                ),
+              );
+            }
+
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final requests = snapshot.data!.docs.toList();
+
+            requests.sort((a, b) {
+              final aTime = a.data()['createdAt'] as Timestamp?;
+              final bTime = b.data()['createdAt'] as Timestamp?;
+
+              return (bTime?.millisecondsSinceEpoch ?? 0).compareTo(
+                aTime?.millisecondsSinceEpoch ?? 0,
+              );
+            });
+
+            if (requests.isEmpty) {
+              return Text(
+                t(
+                  'No saved payment requests yet.',
+                  'ಇನ್ನೂ ಯಾವುದೇ ಉಳಿಸಿದ ಪಾವತಿ ವಿನಂತಿಗಳಿಲ್ಲ.',
+                ),
+              );
+            }
+
+            return Column(
+              children: requests.map((doc) {
+                final data = doc.data();
+                final amount = (data['amount'] as num).toDouble();
+                final status = data['status'] as String? ?? '';
+
+                return Card(
+                  child: ListTile(
+                    onTap: () => openSavedRequest(doc),
+
+                    leading: const Icon(
+                      Icons.receipt_long,
+                      color: Colors.indigo,
+                    ),
+                    title: Text(money(amount)),
+                    subtitle: Text(
+                      '${data['merchantName'] ?? ''}\n'
+                      '${t('Status', 'ಸ್ಥಿತಿ')}: '
+                      '${status == 'Awaiting payment' ? t('Awaiting payment', 'ಪಾವತಿಗಾಗಿ ಕಾಯುತ್ತಿದೆ') : status}',
+                    ),
+                    isThreeLine: true,
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   Widget receivePage() {
     return section(t('Receive Money', 'ಹಣ ಸ್ವೀಕರಿಸಿ'), [
       Text(t('Merchant: ABC Grocery Store', 'ವ್ಯಾಪಾರಿ: ABC ದಿನಸಿ ಅಂಗಡಿ')),
@@ -520,7 +892,132 @@ class _TrustPayHomeState extends State<TrustPayHome> {
               'ನಿಜವಾದ ಬ್ಯಾಂಕ್ ಅಥವಾ UPI ದೃಢೀಕರಣವಲ್ಲ.',
         ),
       ),
+
+      const SizedBox(height: 24),
+      const Divider(),
+      const SizedBox(height: 16),
+      savedRequestsPanel(),
     ]);
+  }
+
+  Widget firebaseDisputeTimeline() {
+    final requestId = activeRequestDocId;
+
+    if (requestId == null) {
+      return Text(
+        t(
+          'Open a saved payment request to view Firebase history.',
+          'ಫೈರ್‌ಬೇಸ್ ಇತಿಹಾಸ ನೋಡಲು ಉಳಿಸಿದ ಪಾವತಿ ವಿನಂತಿ ತೆರೆಯಿರಿ.',
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          t('Firebase Dispute History', 'ಫೈರ್‌ಬೇಸ್ ವಿವಾದ ಇತಿಹಾಸ'),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('payment_requests')
+              .doc(requestId)
+              .collection('demo_events')
+              .orderBy('createdAt')
+              .limit(50)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Text(
+                t(
+                  'Unable to load Firebase dispute history.',
+                  'ಫೈರ್‌ಬೇಸ್ ವಿವಾದ ಇತಿಹಾಸ ಲೋಡ್ ಆಗಲಿಲ್ಲ.',
+                ),
+              );
+            }
+
+            if (snapshot.hasError) {
+              debugPrint('FIREBASE DISPUTE ERROR: ${snapshot.error}');
+
+              return Text('Firebase error: ${snapshot.error}');
+            }
+
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final events = snapshot.data!.docs;
+
+            if (events.isEmpty) {
+              return Text(
+                t(
+                  'No saved demo events for this request.',
+                  'ಈ ವಿನಂತಿಗೆ ಉಳಿಸಿದ ಡೆಮೊ ಘಟನೆಗಳಿಲ್ಲ.',
+                ),
+              );
+            }
+
+            return Column(
+              children: events.map((doc) {
+                final data = doc.data();
+                final eventType = data['eventType'] as String? ?? '';
+                final timestamp = data['createdAt'] as Timestamp?;
+
+                String title;
+
+                switch (eventType) {
+                  case 'demo_payment_submitted':
+                    title = t(
+                      'Demo payment submitted',
+                      'ಡೆಮೊ ಪಾವತಿ ಸಲ್ಲಿಸಲಾಗಿದೆ',
+                    );
+                    break;
+
+                  case 'demo_receipt_matched':
+                    title = t(
+                      'Demo merchant receipt matched',
+                      'ಡೆಮೊ ವ್ಯಾಪಾರಿ ರಸೀದಿ ಹೊಂದಿಕೆಯಾಗಿದೆ',
+                    );
+                    break;
+
+                  case 'demo_receipt_missing':
+                    title = t(
+                      'Demo merchant receipt missing',
+                      'ಡೆಮೊ ವ್ಯಾಪಾರಿ ರಸೀದಿ ಕಾಣೆಯಾಗಿದೆ',
+                    );
+                    break;
+
+                  case 'demo_review_submitted':
+                    title = t(
+                      'Submitted for demo review',
+                      'ಡೆಮೊ ಪರಿಶೀಲನೆಗೆ ಸಲ್ಲಿಸಲಾಗಿದೆ',
+                    );
+                    break;
+
+                  default:
+                    title = eventType;
+                }
+
+                final timeText = timestamp == null
+                    ? t('Time pending', 'ಸಮಯ ಬಾಕಿ ಇದೆ')
+                    : timestamp.toDate().toLocal().toString().split('.').first;
+
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.history, color: Colors.indigo),
+                    title: Text(title),
+                    subtitle: Text(timeText),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
   }
 
   Widget disputesPage() {
@@ -548,6 +1045,12 @@ class _TrustPayHomeState extends State<TrustPayHome> {
           leading: CircleAvatar(child: Text('${i + 1}')),
           title: Text(timeline[i]),
         ),
+
+      const SizedBox(height: 20),
+      const Divider(),
+      const SizedBox(height: 16),
+      firebaseDisputeTimeline(),
+
       const SizedBox(height: 15),
       if (paymentStatus == 'Mismatch - Needs review') ...[
         Text(
@@ -586,6 +1089,154 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     ]);
   }
 
+  Widget firebaseFinancialOverview() {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return Text(
+        t(
+          'Please sign in to view Firebase insights.',
+          'ಫೈರ್‌ಬೇಸ್ ಮಾಹಿತಿಯನ್ನು ನೋಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.',
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          t('Firebase Payment Overview', 'ಫೈರ್‌ಬೇಸ್ ಪಾವತಿ ಮಾಹಿತಿ'),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('payment_requests')
+              .where('merchantId', isEqualTo: user.uid)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Financial Insights error: ${snapshot.error}');
+              return Text(
+                t(
+                  'Unable to load Firebase financial insights.',
+                  'ಫೈರ್‌ಬೇಸ್ ಹಣಕಾಸು ಮಾಹಿತಿ ಲೋಡ್ ಆಗಲಿಲ್ಲ.',
+                ),
+              );
+            }
+
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final requests = snapshot.data!.docs.toList();
+
+            double totalRequested = 0;
+
+            for (final doc in requests) {
+              final value = doc.data()['amount'];
+
+              if (value is num) {
+                totalRequested += value.toDouble();
+              }
+            }
+
+            requests.sort((a, b) {
+              final aTime = a.data()['createdAt'] as Timestamp?;
+              final bTime = b.data()['createdAt'] as Timestamp?;
+
+              return (bTime?.millisecondsSinceEpoch ?? 0).compareTo(
+                aTime?.millisecondsSinceEpoch ?? 0,
+              );
+            });
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.receipt_long,
+                      color: Colors.indigo,
+                    ),
+                    title: Text(
+                      t('Total Payment Requests', 'ಒಟ್ಟು ಪಾವತಿ ವಿನಂತಿಗಳು'),
+                    ),
+                    trailing: Text(
+                      '${requests.length}',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
+                Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.account_balance_wallet,
+                      color: Colors.green,
+                    ),
+                    title: Text(
+                      t('Total Amount Requested', 'ವಿನಂತಿಸಿದ ಒಟ್ಟು ಮೊತ್ತ'),
+                    ),
+                    trailing: Text(
+                      money(totalRequested),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                Text(
+                  t(
+                    'These are demo requests, not confirmed payments.',
+                    'ಇವು ಡೆಮೊ ವಿನಂತಿಗಳು, ದೃಢಪಟ್ಟ ಪಾವತಿಗಳಲ್ಲ.',
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                Text(
+                  t('Recent Payment Requests', 'ಇತ್ತೀಚಿನ ಪಾವತಿ ವಿನಂತಿಗಳು'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                if (requests.isEmpty)
+                  Text(
+                    t('No payment requests yet.', 'ಇನ್ನೂ ಪಾವತಿ ವಿನಂತಿಗಳಿಲ್ಲ.'),
+                  ),
+
+                for (final doc in requests.take(5))
+                  ListTile(
+                    leading: const Icon(Icons.payments_outlined),
+                    title: Text(
+                      money((doc.data()['amount'] as num).toDouble()),
+                    ),
+                    subtitle: Text(
+                      t(
+                        'Awaiting payment (demo request)',
+                        'ಪಾವತಿಗಾಗಿ ಕಾಯುತ್ತಿದೆ (ಡೆಮೊ ವಿನಂತಿ)',
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   Widget insightsPage() {
     const categories = [
       'Groceries',
@@ -597,6 +1248,11 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     ];
 
     return section(t('Financial Insights', 'ಹಣಕಾಸು ಮಾಹಿತಿ'), [
+      firebaseFinancialOverview(),
+      const SizedBox(height: 24),
+      const Divider(),
+      const SizedBox(height: 20),
+
       Text(
         t('Personal Budget Tracker', 'ವೈಯಕ್ತಿಕ ಬಜೆಟ್ ಟ್ರ್ಯಾಕರ್'),
         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -767,23 +1423,36 @@ class _TrustPayHomeState extends State<TrustPayHome> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF10264D),
+        foregroundColor: Colors.white,
+
         title: const Text(
           'TrustPay 360',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+
         actions: [
           TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
             onPressed: () {
               setState(() {
                 useKannada = !useKannada;
               });
             },
-            icon: const Icon(Icons.language),
-            label: Text(useKannada ? 'English' : 'ಕನ್ನಡ'),
+            icon: const Icon(Icons.language, color: Colors.white, size: 22),
+            label: Text(
+              useKannada ? 'English' : 'ಕನ್ನಡ',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(width: 10),
         ],
       ),
+
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 850),

@@ -1,15 +1,11 @@
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
-
-import 'package:hackathon_app/main.dart' as trustpay;
+import 'package:hackathon_app/main.dart';
 
 void main() {
   testWidgets('TrustPay 360 home screen opens', (tester) async {
-    await tester.pumpWidget(const trustpay.TrustPayApp());
+    await tester.pumpWidget(const TrustPayApp());
 
-    expect(find.text('TrustPay 360'), findsOneWidget);
-    expect(find.text('Home'), findsWidgets);
-    expect(find.byIcon(Icons.send), findsOneWidget);
+    expect(find.text('TrustPay 360'), findsNWidgets(2));
+    expect(find.text('Quick Actions'), findsOneWidget);
   });
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "277839245729",
+    "project_id": "trustpay360-499b5",
+    "storage_bucket": "trustpay360-499b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:277839245729:android:8d0afa05405e7c49e15be0",
+        "android_client_info": {
+          "package_name": "com.example.hackathon_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMzYMY6PpgxyiFm-65sGQXGL4saJUjRyY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
