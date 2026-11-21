@@ -1,0 +1,83 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // PAYMENT REQUESTS
+    match /payment_requests/{requestId} {
+
+      // Users can read only their own payment requests.
+      allow get, list: if request.auth != null
+        && resource.data.merchantId == request.auth.uid;
+
+      // Users can create their own demo payment requests.
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          'merchantId',
+          'merchantName',
+          'amount',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'merchantId',
+          'merchantName',
+          'amount',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.merchantId == request.auth.uid
+        && request.resource.data.merchantName is string
+        && request.resource.data.merchantName.size() > 0
+        && request.resource.data.merchantName.size() <= 100
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.amount <= 1000000000
+        && request.resource.data.status == 'Awaiting payment'
+        && request.resource.data.createdAt == request.time;
+
+      // Clients cannot change the payment status.
+      allow update, delete: if false;
+    }
+
+    // SIMULATED PAYMENT AND DISPUTE EVENTS
+    match /payment_requests/{requestId}/demo_events/{eventId} {
+
+      function isRequestOwner() {
+        return request.auth != null
+          && get(
+            /databases/$(database)/documents/payment_requests/$(requestId)
+          ).data.merchantId == request.auth.uid;
+      }
+
+      // Only the request owner can read demo events.
+      allow read: if isRequestOwner();
+
+      // Owner can append valid demo events.
+      allow create: if isRequestOwner()
+        && request.resource.data.keys().hasOnly([
+          'eventType',
+          'createdBy',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'eventType',
+          'createdBy',
+          'createdAt'
+        ])
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.eventType in [
+          'demo_payment_submitted',
+          'demo_receipt_matched',
+          'demo_receipt_missing',
+          'demo_review_submitted'
+        ]
+        && request.resource.data.createdAt == request.time;
+
+      // Prevent editing or deleting historical events.
+      allow update, delete: if false;
+    }
+
+  }
+}
