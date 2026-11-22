@@ -1,9 +1,15 @@
+import 'business_reports_page.dart';
+import 'savings_goals_page.dart';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'firebase_options.dart';
+import 'auth_page.dart';
+import 'shared_payment_page.dart';
+import 'role_selection_page.dart';
 
 class AppColors {
   static const Color navy = Color(0xFF0A1330);
@@ -25,10 +31,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  if (FirebaseAuth.instance.currentUser == null) {
-    await FirebaseAuth.instance.signInAnonymously();
-  }
 
   runApp(const TrustPayApp());
 }
@@ -111,20 +113,126 @@ class TrustPayApp extends StatelessWidget {
         ),
       ),
 
-      home: const TrustPayHome(),
+      home: const AuthGateway(),
+    );
+  }
+}
+
+class AuthGateway extends StatefulWidget {
+  const AuthGateway({super.key});
+
+  @override
+  State<AuthGateway> createState() => _AuthGatewayState();
+}
+
+class _AuthGatewayState extends State<AuthGateway> {
+  String? selectedRole;
+  String? authenticatedUid;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        final user = snapshot.data;
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (user == null || user.isAnonymous) {
+          authenticatedUid = null;
+          selectedRole = null;
+        }
+        if (user == null || user.isAnonymous || authenticatedUid != user.uid) {
+          return AuthPage(
+            onContinue: () {
+              final currentUser = FirebaseAuth.instance.currentUser;
+
+              if (currentUser != null && !currentUser.isAnonymous) {
+                setState(() {
+                  authenticatedUid = currentUser.uid;
+                  selectedRole = null;
+                });
+              }
+            },
+          );
+        }
+
+        if (selectedRole == null) {
+          return RoleSelectionPage(
+            onSelected: (role) {
+              setState(() {
+                selectedRole = role;
+              });
+            },
+          );
+        }
+
+        return TrustPayHome(
+          key: ValueKey('${user.uid}:$selectedRole'),
+          role: selectedRole!,
+        );
+      },
     );
   }
 }
 
 class TrustPayHome extends StatefulWidget {
-  const TrustPayHome({super.key});
+  final String role;
+  const TrustPayHome({super.key, this.role = 'Customer'});
 
   @override
   State<TrustPayHome> createState() => _TrustPayHomeState();
 }
 
 class _TrustPayHomeState extends State<TrustPayHome> {
+  Future<void> logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(t('Logout?', 'ಲಾಗ್ ಔಟ್?')),
+          content: Text(
+            t(
+              'Are you sure you want to log out?',
+              'ನೀವು ಲಾಗ್ ಔಟ್ ಮಾಡಲು ಬಯಸುವಿರಾ?',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(t('Cancel', 'ರದ್ದುಮಾಡಿ')),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(t('Logout', 'ಲಾಗ್ ಔಟ್')),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to logout. Try again.')),
+      );
+    }
+  }
+
   int currentPage = 0;
+
   bool useKannada = false;
 
   int sessionNumber = 1000;
@@ -434,10 +542,199 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     );
   }
 
-  void addExpense() {
-    final value = parseAmount(expenseController.text);
+  bool financeLoading = true;
+  bool financeSaving = false;
+  bool financeReady = false;
 
-    if (value == null) {
+  String financeMonth = '';
+
+  String currentFinanceMonth() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}';
+  }
+
+  DocumentReference<Map<String, dynamic>>? financeUserRef() {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null || user.isAnonymous) {
+      return null;
+    }
+
+    return FirebaseFirestore.instance.collection('users').doc(user.uid);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadFinanceData();
+  }
+
+  Future<void> loadFinanceData() async {
+    final ref = financeUserRef();
+
+    if (ref == null) {
+      if (mounted) {
+        setState(() {
+          financeLoading = false;
+          financeReady = false;
+        });
+      }
+      return;
+    }
+
+    final month = currentFinanceMonth();
+
+    setState(() {
+      financeLoading = true;
+      financeReady = false;
+    });
+
+    try {
+      final budgetDoc = await ref
+          .collection('finance')
+          .doc(month)
+          .get(const GetOptions(source: Source.server));
+
+      final expenseDocs = await ref
+          .collection('expenses')
+          .where('month', isEqualTo: month)
+          .get(const GetOptions(source: Source.server));
+
+      if (!mounted || FirebaseAuth.instance.currentUser?.uid != ref.id) {
+        return;
+      }
+
+      final savedBudget =
+          (budgetDoc.data()?['budget'] as num?)?.toDouble() ?? 5000.0;
+
+      setState(() {
+        financeMonth = month;
+        monthlyBudget = savedBudget;
+        budgetController.text = savedBudget.toStringAsFixed(2);
+
+        expenseRecords
+          ..clear()
+          ..addAll(
+            expenseDocs.docs.map((doc) {
+              final data = doc.data();
+
+              return <String, dynamic>{
+                'id': doc.id,
+                'category': data['category'],
+                'amount': (data['amount'] as num).toDouble(),
+                'createdAt': data['createdAt'],
+              };
+            }),
+          );
+
+        financeReady = true;
+      });
+    } catch (error) {
+      debugPrint('Finance load failed: $error');
+
+      if (!mounted) return;
+
+      showMessage(
+        'Unable to load financial records. Try refreshing.',
+        'ಹಣಕಾಸಿನ ದಾಖಲೆಗಳನ್ನು ಪಡೆಯಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => financeLoading = false);
+      }
+    }
+  }
+
+  Future<void> deleteExpense(String expenseId) async {
+    if (financeLoading || financeSaving || !financeReady) {
+      return;
+    }
+
+    final ref = financeUserRef();
+
+    if (ref == null || expenseId.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(t('Delete Expense?', 'ವೆಚ್ಚ ಅಳಿಸುವುದೇ?')),
+          content: Text(
+            t(
+              'This expense will be permanently deleted.',
+              'ಈ ವೆಚ್ಚವನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸಲಾಗುತ್ತದೆ.',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(t('Cancel', 'ರದ್ದುಮಾಡಿ')),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(t('Delete', 'ಅಳಿಸಿ')),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted ||
+        confirmed != true ||
+        financeSaving ||
+        financeLoading ||
+        FirebaseAuth.instance.currentUser?.uid != ref.id) {
+      return;
+    }
+
+    setState(() => financeSaving = true);
+
+    try {
+      await ref.collection('expenses').doc(expenseId).delete();
+
+      if (!mounted) return;
+
+      await loadFinanceData();
+
+      if (!mounted) return;
+
+      showMessage(
+        'Expense deleted successfully',
+        'ವೆಚ್ಚವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಅಳಿಸಲಾಗಿದೆ',
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      showMessage(
+        'Unable to delete expense',
+        'ವೆಚ್ಚವನ್ನು ಅಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => financeSaving = false);
+      }
+    }
+  }
+
+  Future<void> addExpense() async {
+    if (financeSaving || financeLoading || !financeReady) {
+      return;
+    }
+
+    if (financeMonth != currentFinanceMonth()) {
+      await loadFinanceData();
+      return;
+    }
+
+    final value = parseAmount(expenseController.text);
+    final ref = financeUserRef();
+    final category = expenseCategory;
+
+    if (value == null || !value.isFinite || value <= 0 || value > 1000000000) {
       showMessage(
         'Enter a valid expense amount',
         'ಸರಿಯಾದ ಖರ್ಚಿನ ಮೊತ್ತ ನಮೂದಿಸಿ',
@@ -445,23 +742,92 @@ class _TrustPayHomeState extends State<TrustPayHome> {
       return;
     }
 
-    setState(() {
-      expenseRecords.add({'category': expenseCategory, 'amount': value});
+    if (ref == null) return;
+
+    setState(() => financeSaving = true);
+
+    try {
+      await ref.collection('expenses').add({
+        'category': category,
+        'amount': value,
+        'month': financeMonth,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+
       expenseController.clear();
-    });
+
+      await loadFinanceData();
+
+      if (!mounted) return;
+
+      showMessage(
+        'Expense saved successfully',
+        'ವೆಚ್ಚವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಉಳಿಸಲಾಗಿದೆ',
+      );
+    } catch (error) {
+      debugPrint('Expense save failed: $error');
+
+      if (!mounted) return;
+
+      showMessage('Could not save expense', 'ವೆಚ್ಚವನ್ನು ಉಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ');
+    } finally {
+      if (mounted) {
+        setState(() => financeSaving = false);
+      }
+    }
   }
 
-  void updateBudget() {
-    final value = parseAmount(budgetController.text);
+  Future<void> updateBudget() async {
+    if (financeSaving || financeLoading || !financeReady) {
+      return;
+    }
 
-    if (value == null) {
+    if (financeMonth != currentFinanceMonth()) {
+      await loadFinanceData();
+      return;
+    }
+
+    final value = parseAmount(budgetController.text);
+    final ref = financeUserRef();
+
+    if (value == null || !value.isFinite || value <= 0 || value > 1000000000) {
       showMessage('Enter a valid monthly budget', 'ಸರಿಯಾದ ಮಾಸಿಕ ಬಜೆಟ್ ನಮೂದಿಸಿ');
       return;
     }
 
-    setState(() {
-      monthlyBudget = value;
-    });
+    if (ref == null) return;
+
+    setState(() => financeSaving = true);
+
+    try {
+      await ref.collection('finance').doc(financeMonth).set({
+        'budget': value,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+
+      await loadFinanceData();
+
+      if (!mounted) return;
+
+      showMessage(
+        'Monthly budget saved successfully',
+        'ಮಾಸಿಕ ಬಜೆಟ್ ಯಶಸ್ವಿಯಾಗಿ ಉಳಿಸಲಾಗಿದೆ',
+      );
+    } catch (error) {
+      debugPrint('Budget save failed: $error');
+
+      if (!mounted) return;
+
+      showMessage('Could not save budget', 'ಬಜೆಟ್ ಉಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ');
+    } finally {
+      if (mounted) {
+        setState(() => financeSaving = false);
+      }
+    }
   }
 
   @override
@@ -725,7 +1091,223 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     );
   }
 
+  Widget workspaceDashboard() {
+    final isStudent = widget.role == 'Student';
+    final isMerchant = widget.role == 'Merchant';
+
+    final Color accent = isStudent
+        ? const Color(0xFF17468C)
+        : isMerchant
+        ? const Color(0xFF38256B)
+        : const Color(0xFF795317);
+
+    final IconData workspaceIcon = isStudent
+        ? Icons.school_outlined
+        : isMerchant
+        ? Icons.storefront_outlined
+        : Icons.business_center_outlined;
+
+    final heading = isStudent
+        ? t('Student Workspace', 'ವಿದ್ಯಾರ್ಥಿ ವಿಭಾಗ')
+        : isMerchant
+        ? t('Merchant Workspace', 'ವ್ಯಾಪಾರಿ ವಿಭಾಗ')
+        : t('Business Workspace', 'ವ್ಯವಹಾರ ವಿಭಾಗ');
+
+    Widget action(String title, String subtitle, IconData icon, int page) {
+      return Card(
+        color: Colors.white,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ListTile(
+          contentPadding: const EdgeInsets.all(16),
+          leading: CircleAvatar(
+            backgroundColor: accent.withValues(alpha: 0.1),
+            child: Icon(icon, color: accent),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(subtitle),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: () {
+            setState(() {
+              currentPage = page;
+            });
+          },
+        ),
+      );
+    }
+
+    return pageShell(heading, [
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: LinearGradient(colors: [accent, AppColors.navy]),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(workspaceIcon, size: 42, color: Colors.white),
+            const SizedBox(height: 18),
+            Text(
+              heading,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isStudent
+                  ? t('Remaining budget', 'ಉಳಿದ ಬಜೆಟ್')
+                  : t('Verified demo receipts', 'ಪರಿಶೀಲಿಸಿದ ಡೆಮೊ ರಸೀದಿಗಳು'),
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isStudent
+                  ? money(monthlyBudget - totalExpenses)
+                  : '${collectionRecords.length}',
+              style: const TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (isStudent) ...[
+              LinearProgressIndicator(
+                value: monthlyBudget > 0
+                    ? (totalExpenses / monthlyBudget).clamp(0.0, 1.0).toDouble()
+                    : 0.0,
+                color: AppColors.mint,
+                backgroundColor: Colors.white24,
+              ),
+              const SizedBox(height: 10),
+            ],
+            Text(
+              isMerchant
+                  ? t('Simulated collections only', 'ಅನುಕರಿಸಿದ ಸಂಗ್ರಹಣೆ ಮಾತ್ರ')
+                  : '${t('Expenses', 'ವೆಚ್ಚಗಳು')}: ${money(totalExpenses)}',
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+
+      const SizedBox(height: 24),
+
+      Text(
+        t('Quick Actions', 'ತ್ವರಿತ ಆಯ್ಕೆಗಳು'),
+        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      ),
+
+      const SizedBox(height: 14),
+
+      if (isStudent) ...[
+        Card(
+          child: ListTile(
+            leading: const Icon(
+              Icons.savings_outlined,
+              color: Color(0xFF17468C),
+            ),
+            title: Text(t('Savings Goals', 'ಉಳಿತಾಯ ಗುರಿಗಳು')),
+            subtitle: Text(
+              t('Track your savings progress', 'ಉಳಿತಾಯದ ಪ್ರಗತಿಯನ್ನು ನೋಡಿ'),
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SavingsGoalsPage(),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        action(
+          t('Manage Budget', 'ಬಜೆಟ್ ನಿರ್ವಹಣೆ'),
+          t('View your monthly budget', 'ಮಾಸಿಕ ಬಜೆಟ್ ವೀಕ್ಷಿಸಿ'),
+          Icons.account_balance_wallet_outlined,
+          4,
+        ),
+        action(
+          t('Track Expenses', 'ವೆಚ್ಚಗಳನ್ನು ನಿರ್ವಹಿಸಿ'),
+          t('Record your daily expenses', 'ದೈನಂದಿನ ವೆಚ್ಚಗಳನ್ನು ದಾಖಲಿಸಿ'),
+          Icons.receipt_long_outlined,
+          4,
+        ),
+        action(
+          t('Safe Payments', 'ಸುರಕ್ಷಿತ ಪಾವತಿಗಳು'),
+          t('Assess payment risks', 'ಪಾವತಿ ಅಪಾಯವನ್ನು ಪರಿಶೀಲಿಸಿ'),
+          Icons.shield_outlined,
+          1,
+        ),
+      ] else ...[
+        Card(
+          child: ListTile(
+            leading: const Icon(
+              Icons.analytics_outlined,
+              color: Color(0xFF795317),
+            ),
+            title: Text(t('Business Analytics', 'ವ್ಯವಹಾರ ವಿಶ್ಲೇಷಣೆ')),
+            subtitle: Text(
+              t(
+                'View monthly financial reports',
+                'ಮಾಸಿಕ ಹಣಕಾಸು ವರದಿಗಳನ್ನು ವೀಕ್ಷಿಸಿ',
+              ),
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BusinessReportsPage(),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        action(
+          t('Request Payment', 'ಪಾವತಿ ವಿನಂತಿ'),
+          t('Create a demo payment request', 'ಡೆಮೊ ಪಾವತಿ ವಿನಂತಿ ರಚಿಸಿ'),
+          Icons.request_quote_outlined,
+          2,
+        ),
+        action(
+          t('Verify Receipt', 'ರಸೀದಿ ಪರಿಶೀಲನೆ'),
+          t('Review simulated payment status', 'ಡೆಮೊ ಪಾವತಿ ಸ್ಥಿತಿ ಪರಿಶೀಲಿಸಿ'),
+          Icons.verified_outlined,
+          2,
+        ),
+        action(
+          t('Financial Insights', 'ಹಣಕಾಸಿನ ಒಳನೋಟಗಳು'),
+          t(
+            'View collections and expenses',
+            'ಸಂಗ್ರಹಣೆ ಮತ್ತು ವೆಚ್ಚಗಳನ್ನು ವೀಕ್ಷಿಸಿ',
+          ),
+          Icons.bar_chart_rounded,
+          4,
+        ),
+        action(
+          t('Dispute Replay', 'ವಿವಾದ ಪರಿಶೀಲನೆ'),
+          t('Review payment events', 'ಪಾವತಿ ಘಟನೆಗಳನ್ನು ಪರಿಶೀಲಿಸಿ'),
+          Icons.history,
+          3,
+        ),
+      ],
+    ]);
+  }
+
   Widget homePage() {
+    if (widget.role != 'Customer') return workspaceDashboard();
     final score = riskScore;
 
     return pageShell('TrustPay 360', [
@@ -2454,7 +3036,143 @@ class _TrustPayHomeState extends State<TrustPayHome> {
     );
   }
 
+  Widget expenseBreakdownChart() {
+    final totals = <String, double>{};
+
+    for (final record in expenseRecords) {
+      final category = record['category'] as String;
+      final value = (record['amount'] as num).toDouble();
+
+      totals[category] = (totals[category] ?? 0) + value;
+    }
+
+    final entries = totals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    const colors = [
+      Color(0xFF16A085),
+      Color(0xFF4776D0),
+      Color(0xFF8F73FF),
+      Color(0xFFE8A135),
+      Color(0xFFE87979),
+      Color(0xFF8493AE),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t('Expense Breakdown', 'ವೆಚ್ಚಗಳ ವಿಶ್ಲೇಷಣೆ'),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppColors.navy,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Text(
+            t('Current month: $financeMonth', 'ಪ್ರಸ್ತುತ ತಿಂಗಳು: $financeMonth'),
+            style: const TextStyle(color: AppColors.textSoft),
+          ),
+
+          const SizedBox(height: 16),
+
+          if (entries.isEmpty)
+            Text(
+              t(
+                'Add expenses to view your spending chart.',
+                'ವೆಚ್ಚಗಳ ಚಾರ್ಟ್ ವೀಕ್ಷಿಸಲು ಖರ್ಚು ಸೇರಿಸಿ.',
+              ),
+            ),
+
+          for (int i = 0; i < entries.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          categoryLabel(entries[i].key),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+
+                      Text(
+                        money(entries[i].value),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 9),
+
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: LinearProgressIndicator(
+                      value: totalExpenses > 0
+                          ? (entries[i].value / totalExpenses)
+                                .clamp(0.0, 1.0)
+                                .toDouble()
+                          : 0.0,
+                      minHeight: 12,
+                      backgroundColor: const Color(0xFFEAEFF5),
+                      color: colors[i % colors.length],
+                    ),
+                  ),
+
+                  const SizedBox(height: 5),
+
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      totalExpenses > 0
+                          ? '${(entries[i].value / totalExpenses * 100).toStringAsFixed(1)}%'
+                          : '0%',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSoft,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget insightsPage() {
+    if (financeLoading) return const Center(child: CircularProgressIndicator());
+    if (!financeReady) {
+      return Center(
+        child: FilledButton.icon(
+          onPressed: financeSaving ? null : loadFinanceData,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reload financial records'),
+        ),
+      );
+    }
+    if (financeMonth != currentFinanceMonth()) {
+      return Center(
+        child: FilledButton(
+          onPressed: financeSaving ? null : loadFinanceData,
+          child: const Text('Load current month'),
+        ),
+      );
+    }
     const categories = [
       'Groceries',
       'Food',
@@ -2625,6 +3343,8 @@ class _TrustPayHomeState extends State<TrustPayHome> {
         label: Text(t('Add Expense', 'ಖರ್ಚು ಸೇರಿಸಿ')),
       ),
       const SizedBox(height: 20),
+      expenseBreakdownChart(),
+      const SizedBox(height: 24),
       Text(
         t('Expense History', 'ಖರ್ಚಿನ ಇತಿಹಾಸ'),
         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -2635,7 +3355,20 @@ class _TrustPayHomeState extends State<TrustPayHome> {
         ListTile(
           leading: const Icon(Icons.receipt_long),
           title: Text(categoryLabel(record['category'] as String)),
-          trailing: Text(money(record['amount'] as double)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(money(record['amount'] as double)),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                tooltip: 'Delete expense',
+                onPressed:
+                    financeSaving || financeLoading || record['id'] == null
+                    ? null
+                    : () => deleteExpense(record['id'] as String),
+              ),
+            ],
+          ),
         ),
       const Divider(height: 35),
       Text(
@@ -2717,12 +3450,38 @@ class _TrustPayHomeState extends State<TrustPayHome> {
         backgroundColor: const Color(0xFF10264D),
         foregroundColor: Colors.white,
 
-        title: const Text(
-          'TrustPay 360',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'TrustPay 360',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              widget.role,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF59F0B5)),
+            ),
+          ],
         ),
 
         actions: [
+          IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: 'Live Payments',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SharedPaymentPage(role: widget.role),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            onPressed: logout,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+          ),
           TextButton.icon(
             style: TextButton.styleFrom(foregroundColor: Colors.white),
             onPressed: () {

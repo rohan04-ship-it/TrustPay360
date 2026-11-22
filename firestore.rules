@@ -4,6 +4,188 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+match /users/{userId}/savings/{goalId} {
+
+  function isOwner() {
+    return request.auth != null
+      && request.auth.uid == userId
+      && request.auth.token.firebase.sign_in_provider == 'password';
+  }
+
+  function validGoal() {
+    return request.resource.data.keys().hasOnly([
+      'name',
+      'target',
+      'saved',
+      'createdAt',
+      'updatedAt'
+    ])
+    && request.resource.data.name is string
+    && request.resource.data.name.size() > 0
+    && request.resource.data.name.size() <= 80
+    && request.resource.data.target is number
+    && request.resource.data.target > 0
+    && request.resource.data.target <= 1000000000
+    && request.resource.data.saved is number
+    && request.resource.data.saved >= 0
+    && request.resource.data.saved <= request.resource.data.target
+    && request.resource.data.updatedAt == request.time;
+  }
+
+  allow read: if isOwner();
+
+  allow create: if isOwner()
+    && validGoal()
+    && request.resource.data.saved == 0
+    && request.resource.data.createdAt == request.time;
+
+  allow update: if isOwner()
+    && validGoal()
+    && request.resource.data.diff(resource.data)
+      .affectedKeys().hasOnly([
+        'saved',
+        'updatedAt'
+      ])
+    && request.resource.data.saved >= resource.data.saved;
+
+  allow delete: if isOwner();
+}
+
+
+
+match /users/{userId}/finance/{monthId} {
+
+  function isOwner() {
+    return request.auth != null
+      && request.auth.uid == userId
+      && request.auth.token.firebase.sign_in_provider == 'password';
+  }
+
+  allow read: if isOwner();
+
+  allow create, update: if isOwner()
+    && monthId.matches('[0-9]{4}-(0[1-9]|1[0-2])')
+    && request.resource.data.keys().hasOnly([
+      'budget',
+      'updatedAt'
+    ])
+    && request.resource.data.budget is number
+    && request.resource.data.budget > 0
+    && request.resource.data.budget <= 1000000000
+    && request.resource.data.updatedAt == request.time;
+
+  allow delete: if false;
+}
+
+match /users/{userId}/expenses/{expenseId} {
+
+  function isOwner() {
+    return request.auth != null
+      && request.auth.uid == userId
+      && request.auth.token.firebase.sign_in_provider == 'password';
+  }
+
+  allow read: if isOwner();
+
+  allow create: if isOwner()
+    && request.resource.data.keys().hasOnly([
+      'category',
+      'amount',
+      'month',
+      'createdAt'
+    ])
+    && request.resource.data.category in [
+      'Groceries',
+      'Food',
+      'Transport',
+      'Shopping',
+      'Bills',
+      'Others'
+    ]
+    && request.resource.data.amount is number
+    && request.resource.data.amount > 0
+    && request.resource.data.amount <= 1000000000
+    && request.resource.data.month is string
+    && request.resource.data.month.matches('[0-9]{4}-(0[1-9]|1[0-2])')
+    && request.resource.data.createdAt == request.time;
+
+  allow update: if false;
+  allow delete: if isOwner();
+}
+
+
+
+match /shared_payment_requests/{requestId} {
+
+  function signedIn() {
+    return request.auth != null
+      && request.auth.token.firebase.sign_in_provider == 'password';
+  }
+
+  function isMerchant() {
+    return signedIn()
+      && resource.data.merchantId == request.auth.uid;
+  }
+
+  function isCustomer() {
+    return signedIn()
+      && resource.data.customerId == request.auth.uid;
+  }
+
+  allow get, list: if isMerchant() || isCustomer();
+
+  allow create: if signedIn()
+    && request.resource.data.keys().hasOnly([
+      'merchantId',
+      'customerId',
+      'amount',
+      'status',
+      'createdAt'
+    ])
+    && request.resource.data.keys().hasAll([
+      'merchantId',
+      'customerId',
+      'amount',
+      'status',
+      'createdAt'
+    ])
+    && request.resource.data.merchantId == request.auth.uid
+    && request.resource.data.customerId is string
+    && request.resource.data.customerId.size() > 0
+    && request.resource.data.customerId.size() <= 128
+    && request.resource.data.customerId != request.auth.uid
+    && request.resource.data.amount is number
+    && request.resource.data.amount > 0
+    && request.resource.data.amount <= 1000000000
+    && request.resource.data.status == 'Awaiting payment'
+    && request.resource.data.createdAt == request.time;
+
+  allow update: if
+    request.resource.data.diff(resource.data)
+      .affectedKeys().hasOnly(['status', 'updatedAt'])
+    && request.resource.data.updatedAt == request.time
+    && (
+      (
+        isCustomer()
+        && resource.data.status == 'Awaiting payment'
+        && request.resource.data.status == 'Awaiting merchant verification'
+      )
+      ||
+      (
+        isMerchant()
+        && resource.data.status == 'Awaiting merchant verification'
+        && request.resource.data.status in [
+          'Matched',
+          'Mismatch - Needs review'
+        ]
+      )
+    );
+
+  allow delete: if false;
+}
+
+
+
     // PAYMENT REQUESTS
     match /payment_requests/{requestId} {
 
@@ -81,3 +263,4 @@ service cloud.firestore {
 
   }
 }
+
