@@ -1,3 +1,5 @@
+# 
+
 # \# 🛡️ TrustPay 360
 
 # 
@@ -6,31 +8,57 @@
 
 # 
 
-# TrustPay 360 is a bilingual fintech prototype designed to improve digital payment safety, transparency, financial awareness, and dispute management for customers and merchants.
+# !\[Flutter](https://img.shields.io/badge/Flutter-Mobile%20App-blue)
+
+# !\[Dart](https://img.shields.io/badge/Dart-Language-0175C2)
+
+# !\[Firebase](https://img.shields.io/badge/Firebase-Backend-orange)
+
+# !\[Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-green)
+
+# !\[Status](https://img.shields.io/badge/Status-Hackathon%20Prototype-success)
 
 # 
 
-# \## 🎯 Problem Statement
+# \## 📌 About the Project
 
 # 
 
-# Digital payment users and merchants face several challenges:
+# TrustPay 360 is a digital payment safety and financial
+
+# management platform designed to improve trust between
+
+# customers and merchants.
 
 # 
 
-# \- Fraudulent and suspicious payment requests.
+# It combines simulated payment verification, QR-based
 
-# \- Recipient identity mismatches.
+# payment requests, fraud risk assessment, dispute management
 
-# \- Misleading payment screenshots.
+# and personal financial management in one application.
 
-# \- Confusion caused by missing payment confirmations.
+# 
 
-# \- Lack of organized dispute history.
+# \## 🚨 Problem Statement
 
-# \- Limited financial and digital payment awareness.
+# 
 
-# \- Language barriers in financial applications.
+# Digital payment users face several challenges:
+
+# 
+
+# \- Fake payment screenshots.
+
+# \- Unverified payment confirmations.
+
+# \- Payment-related fraud.
+
+# \- Customer and merchant disputes.
+
+# \- Poor financial management.
+
+# \- Lack of transaction transparency.
 
 # 
 
@@ -38,35 +66,111 @@
 
 # 
 
-# TrustPay 360 combines rule-based fraud-risk assessment, simulated two-sided payment verification, persistent dispute replay, and financial insights in a single bilingual application.
+# TrustPay 360 provides a unified platform where customers
+
+# and merchants can exchange payment requests, track
+
+# payment status and verify simulated payment receipts
+
+# using real-time cloud synchronization.
 
 # 
 
-# \## ✨ Key Features
+# \## 👥 Four Personalized Workspaces
 
 # 
 
-# | Feature | Description |
+# \### Customer
 
-# |---|---|
+# \- Secure authentication.
 
-# | Fraud Risk Checker | Calculates risk scores using predefined warning signals. |
+# \- Payment risk assessment.
 
-# | Payment Requests | Create and save demo payment requests using Firebase. |
+# \- Personal QR code.
 
-# | Demo Payment Verification | Simulates customer payments and merchant receipt verification. |
+# \- Payment request tracking.
 
-# | Dispute Replay | Displays recorded payment and dispute events. |
+# \- Dispute management.
 
-# | Financial Insights | Displays Firebase payment request totals and local budget and expense information. |
+# 
 
-# | Firebase Authentication | Provides anonymous user authentication for the prototype. |
+# \### Merchant
 
-# | Payment History | Stores and retrieves saved payment requests. |
+# \- Customer QR scanning.
 
-# | Bilingual Interface | Supports English and Kannada. |
+# \- Real-time payment requests.
 
-# | Cross-Platform Support | Flutter application supporting Android and Web. |
+# \- Simulated receipt verification.
+
+# \- Collection tracking.
+
+# \- Financial reports.
+
+# 
+
+# \### Student
+
+# \- Monthly budget management.
+
+# \- Daily expense tracking.
+
+# \- Dynamic spending charts.
+
+# \- Savings goals.
+
+# \- Savings progress tracking.
+
+# 
+
+# \### Business Owner
+
+# \- Monthly financial analytics.
+
+# \- Collection and expense summaries.
+
+# \- Payment status statistics.
+
+# \- PDF financial reports.
+
+# \- Dispute management.
+
+# 
+
+# \## 🚀 Key Features
+
+# 
+
+# \- Firebase authentication.
+
+# \- Email and password registration.
+
+# \- Password recovery.
+
+# \- Four personalized dashboards.
+
+# \- Real-time payment synchronization.
+
+# \- QR generation and scanning.
+
+# \- Rule-based fraud risk assessment.
+
+# \- Simulated receipt matching.
+
+# \- Dispute tracking.
+
+# \- Permanent cloud-based financial records.
+
+# \- Expense breakdown charts.
+
+# \- Student savings goals.
+
+# \- Business financial analytics.
+
+# \- PDF report generation.
+
+# \- English and Kannada support in core screens.
+
+# \- Custom launcher icon and splash screen.
 
 # 
 
@@ -74,19 +178,29 @@
 
 # 
 
-# \- Frontend: Flutter
+# | Technology | Purpose |
 
-# \- Programming Language: Dart
+# |---|---|
 
-# \- Backend: Firebase
+# | Flutter | Application development |
 
-# \- Database: Cloud Firestore
+# | Dart | Programming language |
 
-# \- Authentication: Firebase Authentication
+# | Firebase Authentication | User authentication |
 
-# \- Development Environment: VS Code and Android Studio
+# | Cloud Firestore | Cloud database |
 
-# \- Version Control: Git and GitHub
+# | Firestore Security Rules | Data access protection |
+
+# | QR Flutter | QR generation |
+
+# | Mobile Scanner | QR scanning |
+
+# | PDF | Financial report generation |
+
+# | Printing | PDF sharing and printing |
+
+# | Git and GitHub | Version control |
 
 # 
 
@@ -94,109 +208,85 @@
 
 # 
 
-# ```text
+# ```mermaid
 
-# Customer / Merchant
+# flowchart TD
 
-# &#x20;       |
+# &#x20;   A\[User] --> B\[Flutter Application]
 
-# &#x20;       v
+# &#x20;   B --> C\[Firebase Authentication]
 
-# Flutter Application
+# &#x20;   C --> D\[Account Workspace Selection]
 
-# &#x20;       |
+# &#x20;   D --> E\[Customer]
 
-# &#x20;       +-- Rule-Based Risk Assessment
+# &#x20;   D --> F\[Merchant]
 
-# &#x20;       +-- Demo Payment Verification
+# &#x20;   D --> G\[Student]
 
-# &#x20;       +-- Financial Insights
+# &#x20;   D --> H\[Business Owner]
 
-# &#x20;       +-- Dispute Replay
+# &#x20;   E --> I\[Cloud Firestore]
 
-# &#x20;       |
+# &#x20;   F --> I
 
-# &#x20;       v
+# &#x20;   G --> I
 
-# Firebase Authentication
+# &#x20;   H --> I
 
-# &#x20;       |
+# &#x20;   I --> J\[Real-Time Synchronization]
 
-# &#x20;       v
+# &#x20;   I --> K\[Financial Analytics]
 
-# Cloud Firestore
-
-# &#x20;       |
-
-# &#x20;       +-- payment\_requests
-
-# &#x20;               |
-
-# &#x20;               +-- demo\_events
+# &#x20;   K --> L\[PDF Reports]
 
 # ```
 
 # 
 
-# \## 🔄 Application Workflow
+# \## 💳 Payment Workflow
 
 # 
 
-# 1\. Merchant creates a demo payment request.
+# 1\. Customer displays a personal QR code.
 
-# 2\. Firebase stores the payment request.
+# 2\. Merchant scans the customer QR code.
 
-# 3\. Customer checks payment risk indicators.
+# 3\. Merchant creates a payment request.
 
-# 4\. Customer simulates a payment.
+# 4\. Customer receives the request in real time.
 
-# 5\. Merchant simulates receipt verification.
+# 5\. Customer simulates payment.
 
-# 6\. A matching or missing receipt event is recorded.
+# 6\. Merchant reviews the simulated receipt.
 
-# 7\. Dispute events can be retrieved from Firebase.
+# 7\. Payment is marked as matched or disputed.
 
-# 8\. Financial Insights displays saved request totals.
-
-# 
-
-# \## 🔐 Security
+# 8\. Both users receive the updated payment status.
 
 # 
 
-# \- Firebase anonymous authentication.
-
-# \- Ownership-based Firestore access.
-
-# \- Validated payment request fields.
-
-# \- Append-only demo event records.
-
-# \- Restricted client-side payment status modifications.
+# \## 🔐 Security Features
 
 # 
 
-# Anonymous authentication and simulated events do not establish verified customer or merchant identities.
+# \- Authenticated user access.
+
+# \- User-specific financial records.
+
+# \- Participant-specific shared payment access.
+
+# \- Firestore security rules.
+
+# \- Controlled payment status transitions.
+
+# \- Input validation.
+
+# \- Logout confirmation.
 
 # 
 
-# \## 🌍 Social Impact
-
-# 
-
-# \- Promotes digital payment safety awareness.
-
-# \- Encourages responsible financial decisions.
-
-# \- Improves accessibility through Kannada language support.
-
-# \- Demonstrates transparent dispute management.
-
-# \- Supports financial literacy among customers and small merchants.
-
-# 
-
-# \## 🚀 Installation
+# \## 📲 Installation
 
 # 
 
@@ -226,19 +316,19 @@
 
 # 
 
-# Run the web application:
+# Run the application:
 
 # 
 
 # ```bash
 
-# flutter run -d chrome
+# flutter run
 
 # ```
 
 # 
 
-# Build the Android debug APK:
+# Build an Android debug APK:
 
 # 
 
@@ -250,21 +340,23 @@
 
 # 
 
-# A compatible Flutter SDK, Android SDK, and configured Firebase project are required.
+# \## 🌍 Social Impact
 
 # 
 
-# \## 🧪 Testing
+# TrustPay 360 aims to:
 
 # 
 
-# ```bash
+# \- Improve awareness of digital payment fraud.
 
-# flutter analyze
+# \- Promote responsible financial management.
 
-# flutter test
+# \- Improve transparency between customers and merchants.
 
-# ```
+# \- Encourage financial discipline among students.
+
+# \- Support small businesses with financial insights.
 
 # 
 
@@ -272,19 +364,19 @@
 
 # 
 
-# \- Secure customer and merchant accounts.
+# \- Real payment gateway integration.
 
-# \- Authorized UPI and banking integrations.
+# \- Bank-verified transaction confirmations.
 
-# \- Machine-learning-based fraud detection.
+# \- Machine learning-based fraud detection.
 
-# \- Dedicated dispute reviewer dashboard.
+# \- Advanced multilingual support.
 
-# \- Real-time payment notifications.
+# \- Biometric authentication.
 
-# \- Additional regional languages.
+# \- Voice-assisted payments.
 
-# \- Persistent personal expense and budget management.
+# \- Production-grade security audits.
 
 # 
 
@@ -292,13 +384,31 @@
 
 # 
 
-# TrustPay 360 is an educational hackathon prototype. Payment transactions and merchant verification are simulated. No real money is transferred, and the application does not independently verify bank or UPI transactions.
+# TrustPay 360 is a hackathon prototype.
 
 # 
 
-# \---
+# Payment transactions are simulated.
+
+# No actual money is transferred.
+
+# Fraud risk assessment is rule-based.
+
+# Financial reports are not official bank statements.
 
 # 
 
-# \*\*TrustPay 360 — Building trust on both sides of every payment.\*\*
+# \## ❤️ Developed For
+
+# 
+
+# Hackathon 2026
+
+# 
+
+# \*\*TrustPay 360 — Making digital payments safer,
+
+# smarter and more transparent.\*\*
+
+
 
