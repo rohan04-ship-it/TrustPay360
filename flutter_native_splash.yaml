@@ -1,0 +1,14 @@
+flutter_native_splash:
+  color: "#0A1330"
+  image: assets/images/trustpay_logo.png
+
+  android: true
+  ios: false
+  web: true
+
+  android_12:
+    color: "#0A1330"
+    image: assets/images/trustpay_logo.png
+    icon_background_color: "#0A1330"
+
+  fullscreen: true
